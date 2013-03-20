@@ -41,6 +41,6 @@ init([]) ->
 
 get_child(Name, Url) ->
     WorkerName = list_to_atom("vffov_worker_" ++ Name),
-    lager:info("Starting worker: ~s", [WorkerName]),
+    vffov:verbose(info, "Starting worker: ~p", [WorkerName]),
     {WorkerName, {vffov_worker, start_link, [WorkerName, Url]},
      temporary, brutal_kill, worker, [vffov_worker]}.

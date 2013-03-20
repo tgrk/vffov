@@ -1,9 +1,9 @@
 %%%-----------------------------------------------------------------------------
 %%% @author Martin Wiso <martin@wiso.cz>
 %%% @doc
-%%% TODO: * specify download dir
-%%%       * disable/enable logging and use console output only
-%%%       * disable/enable paralle download?
+%%% VFFOV API
+%%%
+%%% TODO: * disable/enable parallel download?
 %%% @end
 %%% Created : 5 Mar 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
@@ -11,6 +11,7 @@
 
 %% API
 -export([download/1,
+         verbose/3,
          start/0,
          stop/0
         ]).
@@ -27,8 +28,14 @@ download(Path) ->
                 Other   -> throw({unknown_file_extension, Other})
             end;
         {error, Reason} ->
-            lager:error("Unable to load playlist file ~s. Error ~p",
+            lager:error("Unable to load download file ~s. Error ~p",
                         [Path, Reason])
+    end.
+
+verbose(Type, Msg, Args) ->
+    case application:get_env(vffov, enable_logging, false) of
+        false -> io:format(Msg ++ "\n", Args);
+        true  -> lager:log(Type, Msg, Args)
     end.
 
 start() ->
@@ -47,11 +54,11 @@ parse(json, Bin) ->
                 lists:foreach(fun download_file/1, List),
                 ok;
             _ ->
-                lager:error("Unable to parse JSON file!", [])
+                verbose(error, "Unable to parse JSON file!", [])
         end
     catch
         _:Reason ->
-            lager:error("Unable to parse JSON file! Error ~p", [Reason])
+            verbose(error, "Unable to parse JSON file! Error ~p", [Reason])
     end;
 parse(txt, Bin) ->
     try
@@ -60,7 +67,7 @@ parse(txt, Bin) ->
         ok
                 catch
         _:Reason ->
-            lager:error("Unable to parse text file! Error ~p", [Reason])
+            verbose(error, "Unable to parse text file! Error ~p", [Reason])
     end.
 
 download_file({[{<<"url">>, Url}]}) ->
@@ -69,9 +76,6 @@ download_file({[{<<"url">>, Url}]}) ->
 download_file(Url) ->
     {_, _, Name} = erlang:now(),
     vffov_sup:start_worker(integer_to_list(Name), Url).
-
-check_config() ->
-    true.
 
 deps() ->
     [compiler, syntax_tools, lager, jiffy, reloader].

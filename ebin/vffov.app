@@ -6,5 +6,7 @@
               {applications,[kernel,stdlib,compiler,syntax_tools,lager,jiffy,
                              reloader]},
               {mod,{vffov_app,[]}},
-              {env,[{downloader_path,"/usr/bin/youtube-dl"},
-                    {downloader_params,"-t"}]}]}.
+              {env,[{download_dir,"/tmp/"},
+                    {enable_logging,false},
+                    {downloader_path,"/usr/bin/youtube-dl"},
+                    {downloader_params,[]}]}]}.

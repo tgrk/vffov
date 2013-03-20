@@ -38,16 +38,16 @@ init([Url]) ->
     {ok, #state{url = remove_https(Url)}, 0}.
 
 handle_call(Call, From, State) ->
-    lager:error("Unmatched call ~p from ~p", [Call, From]),
+    vffov:verbose(error, "Unmatched call ~p from ~p", [Call, From]),
     {reply, invalid_call, State}.
 
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(Cast, State) ->
-    lager:error("Unmatched cast ~p", [Cast]),
+    vffov:verbose(error, "Unmatched cast ~p", [Cast]),
     {noreply, State}.
 handle_info(timeout, #state{url = Url} = State) ->
-    lager:info("Downloading video from url=~s", [Url]),
+    vffov:verbose(info, "Downloading video from url=~s", [Url]),
     open_port(build_command(Url)),
     {noreply, State};
 handle_info({_Port, {data, []}}, State) ->
@@ -57,21 +57,22 @@ handle_info({_Port, {data, "\n"}}, State) ->
 handle_info({_Port, {data, Data}}, #state{url = Url} = State) ->
     case string:substr(Data, 1, 11) == "\r[download]" of
         true  ->
-           lager:info("Downloading ~s - ~s", [Url, string:sub_string(Data, 15)]);
+           vffov:verbose(info, "Downloading ~s - ~s",
+                         [Url, string:sub_string(Data, 15)]);
         false ->
-          lager:info("~s - ~s", [Url, Data])
+          vffov:verbose(info, "~s - ~s", [Url, Data])
     end,
     {noreply, State};
 handle_info({_Port, {exit_status,1}}, #state{url = Url} = State) ->
-    lager:info("Downloading stopped ~s", [Url]),
+    vffov:verbose(info, "Downloading stopped ~s", [Url]),
     {stop, normal, State};
 handle_info({_Port, {exit_status, 0}}, #state{url = Url} = State) ->
-    lager:info("Finished downloading ~s", [Url]),
+    vffov:verbose(info, "Finished downloading ~s", [Url]),
     {stop, normal, State};
 handle_info({'EXIT', _Port, normal}, State) ->
     {stop, normal, State};
 handle_info(Info, State) ->
-    lager:error("Unmatched info ~p, ~p", [Info, State]),
+    vffov:verbose(error, "Unmatched info ~p, ~p", [Info, State]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -88,9 +89,15 @@ open_port(Cmd) ->
 
 build_command(Url) ->
     DownloaderPath = application:get_env(vffov, downloader_path, "youtube-dl"),
-    DownloaderParams = application:get_env(vffov, downloader_params, "-t"),
+    DownloaderTemplate = case application:get_env(vffov, download_dir, "./") of
+                             "./" -> [];
+                             Path ->
+                                 ["-o '" ++ Path ++ "%(title)s-%(id)s.%(ext)s'"]
+                         end,
+    DownloaderParams = application:get_env(vffov, downloader_params, ""),
     lists:flatten(
-      io_lib:format("~s ~s ~s", [DownloaderPath, DownloaderParams, Url])
+      io_lib:format("~s ~s ~s ~s",
+                    [DownloaderPath, DownloaderTemplate, DownloaderParams, Url])
      ).
 
 remove_https(Url) ->

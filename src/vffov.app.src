@@ -17,7 +17,9 @@
         ]},
         {mod, {vffov_app, []}},
         {env, [
+               {download_dir,      "/tmp/"},
+               {enable_logging,    false},
                {downloader_path,   "/usr/bin/youtube-dl"},
-               {downloader_params, "-t"}
+               {downloader_params, ""}
               ]}
  ]}.
