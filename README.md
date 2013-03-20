@@ -36,3 +36,5 @@ JSON format:
          ]
 }
 ```
+
+[1]: https://github.com/rebar/rebar
