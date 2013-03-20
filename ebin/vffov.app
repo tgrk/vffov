@@ -1,0 +1,10 @@
+{application,vffov,
+             [{description,"Video Fetcher For Offline View"},
+              {vsn,"0.1alfa"},
+              {registered,[]},
+              {modules,[vffov,vffov_app,vffov_sup,vffov_worker]},
+              {applications,[kernel,stdlib,compiler,syntax_tools,lager,jiffy,
+                             reloader]},
+              {mod,{vffov_app,[]}},
+              {env,[{downloader_path,"/usr/bin/youtube-dl"},
+                    {downloader_params,"-t"}]}]}.
