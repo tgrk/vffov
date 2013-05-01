@@ -2,8 +2,7 @@
 %%% @author Martin Wiso <martin@wiso.cz>
 %%% @doc
 %%% VFFOV API
-%%%
-%%% TODO: * disable/enable parallel download?
+%%% TODO: * allow download url(url detection only)
 %%% @end
 %%% Created : 5 Mar 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
@@ -11,7 +10,6 @@
 
 %% API
 -export([download/1,
-         verbose/3,
          start/0,
          stop/0
         ]).
@@ -32,12 +30,6 @@ download(Path) ->
                         [Path, Reason])
     end.
 
-verbose(Type, Msg, Args) ->
-    case application:get_env(vffov, enable_logging, false) of
-        false -> io:format(Msg ++ "\n", Args);
-        true  -> lager:log(Type, Msg, Args)
-    end.
-
 start() ->
     [application:start(A) || A <- deps() ++ [vffov]].
 
@@ -51,31 +43,45 @@ parse(json, Bin) ->
     try
         case jiffy:decode(Bin) of
             {[{<<"list">>, List}]} ->
-                lists:foreach(fun download_file/1, List),
-                ok;
+                handle_download(List);
             _ ->
-                verbose(error, "Unable to parse JSON file!", [])
+                vffov_common:verbose(error, "Unable to parse JSON file!", [])
         end
     catch
         _:Reason ->
-            verbose(error, "Unable to parse JSON file! Error ~p", [Reason])
+            vffov_common:verbose(error, "Unable to parse JSON file! Error ~p",
+                                 [Reason])
     end;
 parse(txt, Bin) ->
     try
-        List = string:tokens(erlang:binary_to_list(Bin), "\n"),
-        lists:foreach(fun download_file/1, List),
-        ok
-                catch
+        case string:tokens(erlang:binary_to_list(Bin), "\n") of
+            []   ->
+                empty_playlist;
+            List ->
+                handle_download(List)
+        end
+    catch
         _:Reason ->
-            verbose(error, "Unable to parse text file! Error ~p", [Reason])
+            vffov_common:verbose(error, "Unable to parse text file! Error ~p",
+                                 [Reason])
+    end.
+
+handle_download(List) ->
+    case application:get_env(vffov, download_parallel, false) of
+        true  -> lists:foreach(fun download_file/1, List);
+        false -> queue_downloads(List)
     end.
 
 download_file({[{<<"url">>, Url}]}) ->
     {_, _, Name} = erlang:now(),
-    vffov_sup:start_worker(integer_to_list(Name), binary_to_list(Url));
+    vffov_sup:start_worker(parallel, integer_to_list(Name), binary_to_list(Url));
 download_file(Url) ->
     {_, _, Name} = erlang:now(),
-    vffov_sup:start_worker(integer_to_list(Name), Url).
+    vffov_sup:start_worker(parallel, integer_to_list(Name), Url).
+
+queue_downloads(List) ->
+    {_, _, Name} = erlang:now(),
+    vffov_sup:start_worker(queued, integer_to_list(Name), List).
 
 deps() ->
     [compiler, syntax_tools, lager, jiffy, reloader].
