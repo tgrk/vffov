@@ -7,8 +7,8 @@
               {applications,[kernel,stdlib,compiler,syntax_tools,lager,jiffy,
                              reloader]},
               {mod,{vffov_app,[]}},
-              {env,[{download_dir,"/tmp/"},
-                    {download_parallel,true},
+              {env,[{download_dir,"/home/wiso/Videos/"},
+                    {download_parallel,false},
                     {enable_logging,false},
                     {downloader_path,"/usr/bin/youtube-dl"},
                     {downloader_params,[]}]}]}.

@@ -48,8 +48,7 @@ handle_cast(Cast, State) ->
     {noreply, State}.
 
 handle_info(timeout, State) ->
-    NewState = do_download(State),
-    {noreply, NewState};
+    do_download(State);
 handle_info({_Port, {data, []}}, State) ->
     {noreply, State};
 handle_info({_Port, {data, "\n"}}, State) ->
@@ -59,10 +58,10 @@ handle_info({_Port, {data, Data}}, #state{current_url = Url} = State) ->
     {noreply, State};
 handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
     vffov_common:verbose(info, "Downloading stopped ~s", [Url]),
-    {noreply, do_download(State)};
+    do_download(State);
 handle_info({_Port, {exit_status, 0}}, #state{current_url = Url} = State) ->
     vffov_common:verbose(info, "Finished downloading ~s", [Url]),
-    {noreply, do_download(State)};
+    do_download(State);
 handle_info({'EXIT', _Port, normal}, State) ->
     {stop, normal, State};
 handle_info(Info, State) ->
@@ -79,7 +78,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functionality
 %%%============================================================================
 do_download(#state{queue =  Queue} = State) ->
-   {{value, Url}, Queue2} = queue:out(Queue),
-    vffov_common:verbose(info, "Downloading video from url=~s", [Url]),
-    vffov_common:open_downloader_port(Url),
-    State#state{queue = Queue2, current_url = Url}.
+   case queue:out(Queue) of
+      {empty,{[],[]}} -> {stop, normal, State#state{queue = [], current_url = []}};
+      {{value, Url}, Queue2} ->
+         vffov_common:verbose(info, "Downloading video from url=~s", [Url]),
+         vffov_common:open_downloader_port(Url),
+         {noreply, State#state{queue = Queue2, current_url = Url}}
+   end.

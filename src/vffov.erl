@@ -9,7 +9,8 @@
 -module(vffov).
 
 %% API
--export([download/1,
+-export([download/0,
+         download/1,
          start/0,
          stop/0
         ]).
@@ -17,6 +18,9 @@
 %%%=============================================================================
 %%% API
 %%%=============================================================================
+download() ->
+    download("priv/playlist.txt").
+
 download(Path) ->
     case file:read_file(Path) of
         {ok, Bin} ->

@@ -43,14 +43,12 @@ remove_https(Url) ->
 %%=============================================================================
 build_downloader_command(Url) ->
     DownloaderPath = application:get_env(vffov, downloader_path, "youtube-dl"),
-    DownloaderTemplate = case application:get_env(vffov, download_dir, "./") of
-                             "./" -> [];
-                             ""   -> [];
-                             Path ->
-                                 ["-o '" ++ Path ++ "%(title)s-%(id)s.%(ext)s'"]
-                         end,
-    DownloaderParams = application:get_env(vffov, downloader_params, ""),
+    Template = case application:get_env(vffov, download_dir, "./") of
+                   "./" -> [];
+                   ""   -> [];
+                   Path -> ["-o '" ++ Path ++ "%(title)s-%(id)s.%(ext)s'"]
+               end,
+    Params = application:get_env(vffov, downloader_params, ""),
     lists:flatten(
-      io_lib:format("~s ~s ~s ~s",
-                    [DownloaderPath, DownloaderTemplate, DownloaderParams, Url])
+      io_lib:format("~s ~s ~s ~s", [DownloaderPath, Template, Params, Url])
      ).

@@ -38,16 +38,18 @@ init([]) ->
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
-get_child(parallel, Name, Arg) ->
-    WorkerName = get_worker_name(Name),
+get_child(parallel = Type, Name, Arg) ->
+    WorkerName = get_worker_name(Type, Name),
     vffov_common:verbose(info, "Starting parallel worker: ~p", [WorkerName]),
     {WorkerName, {vffov_worker, start_link, [WorkerName, Arg]},
      temporary, brutal_kill, worker, [vffov_worker]};
-get_child(queued, Name, Arg) ->
-    WorkerName = get_worker_name(Name),
+get_child(queued = Type, Name, Arg) ->
+    WorkerName = get_worker_name(Type, Name),
     vffov_common:verbose(info, "Starting queued worker: ~p", [WorkerName]),
     {WorkerName, {vffov_queue_worker, start_link, [WorkerName, Arg]},
      temporary, brutal_kill, worker, [vffov_queue_worker]}.
 
-get_worker_name(Name) ->
-    list_to_atom("vffov_queue_worker_" ++ Name).
+get_worker_name(queued, Name) ->
+    list_to_atom("vffov_queue_worker_" ++ Name);
+get_worker_name(parallel, Name) ->
+    list_to_atom("vffov_worker_" ++ Name).
