@@ -79,9 +79,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================
 do_download(#state{queue =  Queue} = State) ->
    case queue:out(Queue) of
-      {empty,{[],[]}} -> {stop, normal, State#state{queue = [], current_url = []}};
       {{value, Url}, Queue2} ->
          vffov_common:verbose(info, "Downloading video from url=~s", [Url]),
          vffov_common:open_downloader_port(Url),
-         {noreply, State#state{queue = Queue2, current_url = Url}}
+         {noreply, State#state{queue = Queue2, current_url = Url}};
+       _ -> {stop, normal, State#state{queue = [], current_url = []}}
    end.
