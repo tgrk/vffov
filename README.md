@@ -2,7 +2,7 @@ VideoFetcherForOfflineView
 =====
 
 An Erlang app for downloading content for offline view (using [youtube-dl](https://github.com/rg3/youtube-dl) tool).
-Downloads all videos in parallel based on supplied list of URLs.
+Downloads all videos in queued/parallel mode based on supplied list of URLs.
 
 Dependencies
 =====
