@@ -8,7 +8,7 @@
                              reloader]},
               {mod,{vffov_app,[]}},
               {env,[{download_dir,"/home/wiso/Videos/"},
-                    {download_parallel,false},
+                    {download_parallel,true},
                     {enable_logging,false},
                     {downloader_path,"/usr/bin/youtube-dl"},
                     {downloader_params,[]}]}]}.

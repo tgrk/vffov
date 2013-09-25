@@ -19,7 +19,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {queue, current_url}).
+-record(state, {port, queue, current_url}).
 
 %%%============================================================================
 %%% API
@@ -77,11 +77,17 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================
 %%% Internal functionality
 %%%============================================================================
-do_download(#state{queue =  Queue} = State) ->
+do_download(#state{port = undefined, queue =  Queue} = State) ->
    case queue:out(Queue) of
       {{value, Url}, Queue2} ->
-         vffov_common:verbose(info, "Downloading video from url=~s", [Url]),
-         vffov_common:open_downloader_port(Url),
-         {noreply, State#state{queue = Queue2, current_url = Url}};
-       _ -> {stop, normal, State#state{queue = [], current_url = []}}
-   end.
+           vffov_common:verbose(info, "Downloading video from url ~s", [Url]),
+           Port = vffov_common:open_downloader_port(Url),
+           {noreply,
+            State#state{port = Port, queue = Queue2, current_url = Url}
+           };
+       _ ->
+           {stop, normal, State#state{queue = [], current_url = []}}
+   end;
+do_download(#state{port = Port} = State) ->
+    vffov_common:close_downloader_port(Port),
+    do_download(State#state{port = undefined}).

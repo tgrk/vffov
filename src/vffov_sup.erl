@@ -33,7 +33,14 @@ start_worker(Type, Name, Url) ->
 %% Supervisor callbacks
 %%=============================================================================
 init([]) ->
-    {ok, {{one_for_one, 5, 10}, []}}.
+    ChildSpecs = [
+                  statman(),
+                  statman_aggregator(),
+                  statman_poller(),
+                  statman_elli(),
+                  elli()
+                 ],
+    {ok, {{one_for_one, 5, 10}, ChildSpecs}}.
 
 %%%============================================================================
 %%% Internal functions
@@ -53,3 +60,45 @@ get_worker_name(queued, Name) ->
     list_to_atom("vffov_queue_worker_" ++ Name);
 get_worker_name(parallel, Name) ->
     list_to_atom("vffov_worker_" ++ Name).
+
+%% Childspecs required by statman dashboard
+statman() ->
+    {statman, {statman_server, start_link, [1000]},
+     permanent, 5000, worker, []}.
+
+statman_aggregator() ->
+    {statman_aggregator, {statman_aggregator, start_link, []},
+     permanent, 5000, worker, []}.
+
+statman_poller() ->
+    {statman_gauge_poller, {statman_poller, start_link, []},
+     permanent, 5000, worker, []}.
+
+statman_elli() ->
+    {statman_elli, {statman_elli_server, start_link, []},
+     permanent, 5000, worker, []}.
+
+elli() ->
+    {ok, Cwd} = file:get_cwd(),
+    StatmanConfig = [{name, collect_statman_elli},
+                     {docroot, filename:join(
+                                 [Cwd, "deps/statman_elli/priv/docroot"]
+                                )
+                     }
+                    ],
+
+    Middleware = [{mods, [
+                          {statman_elli, StatmanConfig},
+                          {elli_access_log, []},
+                          {collect_options, []},
+                          {collect_health_check, []},
+                          {collect_crossdomain, []},
+                          {collect_api, []}
+                         ]}
+                 ],
+
+    Opts = [{callback, elli_middleware},
+            {callback_args, Middleware},
+            {port, 8080}
+           ],
+    {elli, {elli, start_link, [Opts]}, permanent, 5000, worker, []}.

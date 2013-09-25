@@ -7,8 +7,13 @@
 %%%-----------------------------------------------------------------------------
 -module(vffov_common).
 
-
--compile(export_all).
+-export([
+         verbose/3,
+         open_downloader_port/1,
+         close_downloader_port/1,
+         handle_downloader_output/2,
+         strip_https_from_url/1
+        ]).
 
 %%=============================================================================
 %% API
@@ -23,6 +28,9 @@ open_downloader_port(Url) ->
     Cmd = build_downloader_command(Url),
     erlang:open_port({spawn, Cmd}, [exit_status]).
 
+close_downloader_port(Port) ->
+    erlang:port_close(Port).
+
 handle_downloader_output(Url, Data) ->
     case string:substr(Data, 1, 11) == "\r[download]" of
         true  ->
@@ -32,7 +40,7 @@ handle_downloader_output(Url, Data) ->
             verbose(info, "~s - ~s", [Url, Data])
     end.
 
-remove_https(Url) ->
+strip_https_from_url(Url) ->
     case string:str(Url, "https://") of
         0 -> Url;
         _ -> re:replace(Url, "https", "http", [{return, list}])
