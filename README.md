@@ -15,8 +15,14 @@ Usage
 Start application using `start.sh` script. Then start downloading using
 following call:
 
-```
+```erlang
 1> vffov:download("priv/test.txt").
+```
+
+You could also use default playlist that is stored in ```priv/playlist.txt``:
+
+```erlang
+2> vffov:download().
 ```
 
 Download list format
