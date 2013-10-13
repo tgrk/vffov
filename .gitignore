@@ -1,7 +1,6 @@
 .eunit
 deps
 log
-priv/playlist.txt
 *.o
 *.beam
 *.plt
