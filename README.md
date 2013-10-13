@@ -35,7 +35,7 @@ url2
 ```
 
 JSON format:
-```
+```json
 {"list": [
           {"url": "url1"}
            ...
