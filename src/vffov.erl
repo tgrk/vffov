@@ -2,7 +2,6 @@
 %%% @author Martin Wiso <martin@wiso.cz>
 %%% @doc
 %%% VFFOV API
-%%% TODO: * allow download url(url detection only)
 %%% @end
 %%% Created : 5 Mar 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
@@ -18,10 +17,28 @@
 %%%=============================================================================
 %%% API
 %%%=============================================================================
+
+%%TODO: use code_priv
 download() ->
     download("priv/playlist.txt").
 
 download(Path) ->
+    case filelib:is_regular(vffov_common:get_downloader()) of
+        true  -> download_1(Path);
+        false -> lager:error("Clive downloader not found!")
+    end.
+
+start() ->
+    [application:start(A) || A <- deps() ++ [vffov]].
+
+stop() ->
+    [application:stop(A) || A <- deps() ++ [vffov]].
+
+%%%=============================================================================
+%%% Internal functionality
+%%%=============================================================================
+%%TODO: allow download of url and list of urls
+download_1(Path) ->
     case file:read_file(Path) of
         {ok, Bin} ->
             case filename:extension(Path) of
@@ -34,15 +51,6 @@ download(Path) ->
                         [Path, Reason])
     end.
 
-start() ->
-    [application:start(A) || A <- deps() ++ [vffov]].
-
-stop() ->
-    [application:stop(A) || A <- deps() ++ [vffov]].
-
-%%%=============================================================================
-%%% Internal functionality
-%%%=============================================================================
 parse(json, Bin) ->
     try
         case jiffy:decode(Bin) of
@@ -59,10 +67,8 @@ parse(json, Bin) ->
 parse(txt, Bin) ->
     try
         case string:tokens(erlang:binary_to_list(Bin), "\n") of
-            []   ->
-                empty_playlist;
-            List ->
-                handle_download(List)
+            []   -> empty_playlist;
+            List -> handle_download(List)
         end
     catch
         _:Reason ->
@@ -88,4 +94,4 @@ queue_downloads(List) ->
     vffov_sup:start_worker(queued, integer_to_list(Name), List).
 
 deps() ->
-    [compiler, syntax_tools, lager, jiffy, reloader].
+    [compiler, syntax_tools, lager, jiffy].

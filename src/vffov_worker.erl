@@ -50,18 +50,15 @@ handle_info(timeout, #state{current_url = Url} = State) ->
     vffov_common:verbose(info, "Downloading video from url=~s", [Url]),
     vffov_common:open_downloader_port(Url),
     {noreply, State};
-handle_info({_Port, {data, []}}, State) ->
-    {noreply, State};
-handle_info({_Port, {data, "\n"}}, State) ->
-    {noreply, State};
 handle_info({_Port, {data, Data}}, #state{current_url = Url} = State) ->
-    vffov_common:handle_downloader_output(Url, Data),
+    vffov_common:verbose(info, "~s - ~s", [Url, Data]),
     {noreply, State};
 handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
     vffov_common:verbose(info, "Downloading stopped ~s", [Url]),
     {stop, normal, State};
 handle_info({_Port, {exit_status, 0}}, #state{current_url = Url} = State) ->
     vffov_common:verbose(info, "Finished downloading ~s", [Url]),
+    vffov_common:move_to_download_dir(Url),
     {stop, normal, State};
 handle_info({'EXIT', _Port, normal}, State) ->
     {stop, normal, State};

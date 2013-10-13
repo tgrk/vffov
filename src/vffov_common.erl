@@ -9,10 +9,10 @@
 
 -export([
          verbose/3,
+         move_to_download_dir/1,
+         get_downloader/0,
          open_downloader_port/1,
-         close_downloader_port/1,
-         handle_downloader_output/2,
-         strip_https_from_url/1
+         close_downloader_port/1
         ]).
 
 %%=============================================================================
@@ -24,39 +24,39 @@ verbose(Type, Msg, Args) ->
         true  -> lager:log(Type, Msg, Args)
     end.
 
+move_to_download_dir(Url) ->
+    [_,Id] = string:tokens(Url, "v="),
+    [File] = lists:filter(
+               fun(F) -> string:str(F, Id) > 0 end,
+               filelib:wildcard("*")
+              ),
+    Target = filename:join(
+               application:get_env(vffov, download_dir, ""),
+               File
+              ),
+    file:rename(File, Target).
+
 open_downloader_port(Url) ->
-    Cmd = build_downloader_command(Url),
-    erlang:open_port({spawn, Cmd}, [exit_status]).
+    erlang:open_port(
+      {spawn, build_downloader_command(Url)},
+      [exit_status]
+     ).
 
 close_downloader_port(Port) ->
     erlang:port_close(Port).
 
-handle_downloader_output(Url, Data) ->
-    case string:substr(Data, 1, 11) == "\r[download]" of
-        true  ->
-            verbose(info, "Downloading ~s - ~s",
-                          [Url, string:sub_string(Data, 15)]);
-        false ->
-            verbose(info, "~s - ~s", [Url, Data])
-    end.
-
-strip_https_from_url(Url) ->
-    case string:str(Url, "https://") of
-        0 -> Url;
-        _ -> re:replace(Url, "https", "http", [{return, list}])
-    end.
+get_downloader() ->
+    application:get_env(vffov, downloader_path, "/usr/bin/clive").
 
 %%=============================================================================
 %% Internal functionality
 %%=============================================================================
 build_downloader_command(Url) ->
-    DownloaderPath = application:get_env(vffov, downloader_path, "youtube-dl"),
-    Template = case application:get_env(vffov, download_dir, "./") of
-                   "./" -> [];
-                   ""   -> [];
-                   Path -> ["-o '" ++ Path ++ "%(title)s-%(id)s.%(ext)s'"]
-               end,
-    Params = application:get_env(vffov, downloader_params, ""),
     lists:flatten(
-      io_lib:format("~s ~s ~s ~s", [DownloaderPath, Template, Params, Url])
+      io_lib:format(
+        "~s ~s ~s ~s",
+        [get_downloader(),
+         "--filename-format '%t-%i.%s'",
+         application:get_env(vffov, downloader_params, ""),
+         Url])
      ).
