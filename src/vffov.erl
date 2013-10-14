@@ -17,16 +17,24 @@
 %%%=============================================================================
 %%% API
 %%%=============================================================================
-
-%%TODO: use code_priv
 download() ->
-    download("priv/playlist.txt").
+    download(vffov_common:priv_dir(vffov) ++ "playlist.txt").
 
-download(Path) ->
-    case filelib:is_regular(vffov_common:get_downloader()) of
-        true  -> download_1(Path);
-        false -> lager:error("Clive downloader not found!")
-    end.
+download(L) when is_list(L) ->
+    case is_url_list(L) of
+        true  -> handle_download(L);
+        false -> download(L)
+    end;
+download(L) ->
+    case is_url(L) of
+        true  ->
+            handle_download([L]);
+        false ->
+            case filelib:is_regular(vffov_common:get_downloader()) of
+                true  -> download_1(L);
+                false -> lager:error("Clive downloader not found!")
+            end
+     end.
 
 start() ->
     [application:start(A) || A <- deps() ++ [vffov]].
@@ -37,7 +45,6 @@ stop() ->
 %%%=============================================================================
 %%% Internal functionality
 %%%=============================================================================
-%%TODO: allow download of url and list of urls
 download_1(Path) ->
     case file:read_file(Path) of
         {ok, Bin} ->
@@ -50,6 +57,12 @@ download_1(Path) ->
             lager:error("Unable to load download file ~s. Error ~p",
                         [Path, Reason])
     end.
+
+is_url_list(L) when is_list(L) ->
+    not lists:member(false, lists:filter(fun(Url) -> is_url(Url) end, L)).
+
+is_url(S) when is_list(S) ->
+    string:str(S, "http://") > 0 orelse string:str("https://", S) > 0.
 
 parse(json, Bin) ->
     try
