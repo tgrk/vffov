@@ -9,6 +9,7 @@
 
 -export([
          verbose/3,
+         priv_dir/1,
          move_to_download_dir/1,
          get_downloader/0,
          open_downloader_port/1,
@@ -22,6 +23,15 @@ verbose(Type, Msg, Args) ->
     case application:get_env(vffov, enable_logging, false) of
         false -> io:format(Msg ++ "\n", Args);
         true  -> lager:log(Type, Msg, Args)
+    end.
+
+priv_dir(App) ->
+    case code:priv_dir(App) of
+        {error, bad_name} ->
+            {ok, Cwd} = file:get_cwd(),
+            Cwd ++ "/" ++ "priv/";
+        Priv ->
+            Priv ++ "/"
     end.
 
 move_to_download_dir(Url) ->
@@ -56,7 +66,7 @@ build_downloader_command(Url) ->
       io_lib:format(
         "~s ~s ~s ~s",
         [get_downloader(),
-         "--filename-format '%t-%i.%s'",
+         "--filename-format '%t-%i.%s' ",
          application:get_env(vffov, downloader_params, ""),
          Url])
      ).
