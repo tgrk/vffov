@@ -10,4 +10,4 @@
                     {download_parallel,true},
                     {enable_logging,false},
                     {downloader_path,"/usr/bin/clive"},
-                    {downloader_params,[]}]}]}.
+                    {downloader_params,"--quiet"}]}]}.
