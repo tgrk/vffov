@@ -10,7 +10,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, start_worker/3]).
+-export([start_link/0, start_worker/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -21,10 +21,10 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_worker(Type, Name, Url) ->
-    case supervisor:start_child(?MODULE, get_child(Type, Name, Url)) of
+start_worker(Worker, Url) ->
+    case supervisor:start_child(?MODULE, get_child(Worker, Url)) of
         {error, Reason} ->
-            throw({unable_to_start_worker, Type, Name, Reason});
+            throw({unable_to_start_worker, Worker, Reason});
         {ok, Pid} ->
             Pid
     end.
@@ -45,21 +45,19 @@ init([]) ->
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
-get_child(parallel = Type, Name, Arg) ->
-    WorkerName = get_worker_name(Type, Name),
-    vffov_common:verbose(info, "Starting parallel worker: ~p", [WorkerName]),
-    {WorkerName, {vffov_worker, start_link, [WorkerName, Arg]},
-     temporary, brutal_kill, worker, [vffov_worker]};
-get_child(queued = Type, Name, Arg) ->
-    WorkerName = get_worker_name(Type, Name),
-    vffov_common:verbose(info, "Starting queued worker: ~p", [WorkerName]),
-    {WorkerName, {vffov_queue_worker, start_link, [WorkerName, Arg]},
-     temporary, brutal_kill, worker, [vffov_queue_worker]}.
+get_child(Worker, Arg) ->
+    {_, _, Mics} = erlang:now(),
+    Name = get_worker_name(Worker, integer_to_list(Mics)),
+    Type = get_type(Worker),
+    vffov_common:verbose(info, "Starting ~s worker: ~p", [Name, Type]),
+    {Name, {Worker, start_link, [Name, Arg]}, temporary, brutal_kill,
+     worker, [Worker]}.
 
-get_worker_name(queued, Name) ->
-    list_to_atom("vffov_queue_worker_" ++ Name);
-get_worker_name(parallel, Name) ->
-    list_to_atom("vffov_worker_" ++ Name).
+get_type(vffov_parallel_worker) -> "parallel";
+get_type(vffov_queued_worker)   -> "queued".
+
+get_worker_name(Worker, Name) ->
+    list_to_atom(atom_to_list(Worker) ++ "_" ++ Name).
 
 %% Childspecs required by statman dashboard
 statman() ->

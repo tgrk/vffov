@@ -61,6 +61,20 @@ process_url_list(L) when is_list(L) ->
         false -> handle_download([L])
     end.
 
+handle_download(List) ->
+    case application:get_env(vffov, download_parallel, false) of
+        true  -> lists:foreach(fun download_file/1, List);
+        false -> queue_downloads(List)
+    end.
+
+download_file({[{<<"url">>, Url}]}) ->
+    vffov_sup:start_worker(vffov_parallel_worker, Url);
+download_file(Url) ->
+    vffov_sup:start_worker(vffov_parallel_worker, Url).
+
+queue_downloads(List) ->
+    vffov_sup:start_worker(vffov_queued_worker, List).
+
 is_url(S) when is_list(S) ->
     string:str(S, "http://") > 0 orelse string:str("https://", S) > 0;
 is_url(_S) ->
@@ -90,24 +104,6 @@ parse(txt, Bin) ->
             vffov_common:verbose(error, "Unable to parse text file! Error ~p",
                                  [Reason])
     end.
-
-handle_download(List) ->
-    case application:get_env(vffov, download_parallel, false) of
-        true  -> lists:foreach(fun download_file/1, List);
-        false -> queue_downloads(List)
-    end.
-
-%TODO: unify this functions to have same input
-download_file({[{<<"url">>, Url}]}) ->
-    {_, _, Name} = erlang:now(),
-    vffov_sup:start_worker(parallel, integer_to_list(Name), binary_to_list(Url));
-download_file(Url) ->
-    {_, _, Name} = erlang:now(),
-    vffov_sup:start_worker(parallel, integer_to_list(Name), Url).
-
-queue_downloads(List) ->
-    {_, _, Name} = erlang:now(),
-    vffov_sup:start_worker(queued, integer_to_list(Name), List).
 
 deps() ->
     [compiler, syntax_tools, lager, jiffy].
