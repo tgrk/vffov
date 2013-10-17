@@ -21,10 +21,7 @@ download() ->
     download(vffov_common:priv_dir(vffov) ++ "playlist.txt").
 
 download(L) when is_list(L) ->
-    case is_url_list(L) of
-        true  -> handle_download(L);
-        false -> download(L)
-    end;
+    process_url_list(L);
 download(L) ->
     case is_url(L) of
         true  ->
@@ -58,11 +55,16 @@ download_1(Path) ->
                         [Path, Reason])
     end.
 
-is_url_list(L) when is_list(L) ->
-    not lists:member(false, lists:filter(fun(Url) -> is_url(Url) end, L)).
+process_url_list(L) when is_list(L) ->
+    case length(L) > 0 andalso is_url(hd(L)) of
+        true  -> handle_download(L);
+        false -> handle_download([L])
+    end.
 
 is_url(S) when is_list(S) ->
-    string:str(S, "http://") > 0 orelse string:str("https://", S) > 0.
+    string:str(S, "http://") > 0 orelse string:str("https://", S) > 0;
+is_url(_S) ->
+    false.
 
 parse(json, Bin) ->
     try
@@ -95,6 +97,7 @@ handle_download(List) ->
         false -> queue_downloads(List)
     end.
 
+%TODO: unify this functions to have same input
 download_file({[{<<"url">>, Url}]}) ->
     {_, _, Name} = erlang:now(),
     vffov_sup:start_worker(parallel, integer_to_list(Name), binary_to_list(Url));
