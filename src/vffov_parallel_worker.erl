@@ -5,7 +5,7 @@
 %%% @end
 %%% Created : 5 Mar 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
--module(vffov_worker).
+-module(vffov_parallel_worker).
 
 -behaviour(gen_server).
 
@@ -55,6 +55,9 @@ handle_info({_Port, {data, Data}}, #state{current_url = Url} = State) ->
     {noreply, State};
 handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
     vffov_common:verbose(info, "Downloading stopped ~s", [Url]),
+    {stop, normal, State};
+handle_info({_Port, {exit_status,23}}, State) ->
+    vffov_common:verbose(info, "Unable to download file! No space left.", []),
     {stop, normal, State};
 handle_info({_Port, {exit_status, 0}}, #state{current_url = Url} = State) ->
     vffov_common:verbose(info, "Finished downloading ~s", [Url]),

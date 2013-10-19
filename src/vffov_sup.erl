@@ -46,18 +46,13 @@ init([]) ->
 %%% Internal functions
 %%%============================================================================
 get_child(Worker, Arg) ->
-    {_, _, Mics} = erlang:now(),
-    Name = get_worker_name(Worker, integer_to_list(Mics)),
-    Type = get_type(Worker),
-    vffov_common:verbose(info, "Starting ~s worker: ~p", [Name, Type]),
+    Name = get_worker_name(Worker),
     {Name, {Worker, start_link, [Name, Arg]}, temporary, brutal_kill,
      worker, [Worker]}.
 
-get_type(vffov_parallel_worker) -> "parallel";
-get_type(vffov_queued_worker)   -> "queued".
-
-get_worker_name(Worker, Name) ->
-    list_to_atom(atom_to_list(Worker) ++ "_" ++ Name).
+get_worker_name(Worker) ->
+    {_, _, Mics} = erlang:now(),
+    list_to_atom(atom_to_list(Worker) ++ "_" ++ integer_to_list(Mics)).
 
 %% Childspecs required by statman dashboard
 statman() ->

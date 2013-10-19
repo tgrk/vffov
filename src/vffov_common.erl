@@ -35,6 +35,7 @@ priv_dir(App) ->
     end.
 
 move_to_download_dir(Url) ->
+    io:format("debug: move url=~p~n", [Url]),
     [_,Id] = string:tokens(Url, "v="),
     [File] = lists:filter(
                fun(F) -> string:str(F, Id) > 0 end,
@@ -66,7 +67,7 @@ build_downloader_command(Url) ->
       io_lib:format(
         "~s ~s ~s ~s",
         [get_downloader(),
-         "--filename-format '%t-%i.%s' ",
          application:get_env(vffov, downloader_params, ""),
+         "--filename-format '%t-%i.%s'",
          Url])
      ).

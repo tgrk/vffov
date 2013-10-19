@@ -21,17 +21,15 @@ download() ->
     download(vffov_common:priv_dir(vffov) ++ "playlist.txt").
 
 download(L) when is_list(L) ->
-    process_url_list(L);
-download(L) ->
-    case is_url(L) of
+    case filelib:is_regular(vffov_common:get_downloader()) of
         true  ->
-            handle_download([L]);
-        false ->
-            case filelib:is_regular(vffov_common:get_downloader()) of
+            case filelib:is_regular(L) of
                 true  -> download_1(L);
-                false -> lager:error("Clive downloader not found!")
-            end
-     end.
+                false -> process_url_list(L)
+            end;
+        false ->
+            lager:error("Clive downloader not found!")
+    end.
 
 start() ->
     [application:start(A) || A <- deps() ++ [vffov]].
@@ -42,17 +40,14 @@ stop() ->
 %%%=============================================================================
 %%% Internal functionality
 %%%=============================================================================
-download_1(Path) ->
-    case file:read_file(Path) of
-        {ok, Bin} ->
-            case filename:extension(Path) of
-                ".json" -> parse(json, Bin);
-                ".txt"  -> parse(txt, Bin);
-                Other   -> throw({unknown_file_extension, Other})
-            end;
-        {error, Reason} ->
-            lager:error("Unable to load download file ~s. Error ~p",
-                        [Path, Reason])
+download_1(Input) ->
+    case is_url(Input) of
+        true  ->
+            %% handle input form console
+            handle_download([Input]);
+        false ->
+            %% handle file input
+            handle_download(parse(Input))
     end.
 
 process_url_list(L) when is_list(L) ->
@@ -80,29 +75,31 @@ is_url(S) when is_list(S) ->
 is_url(_S) ->
     false.
 
-parse(json, Bin) ->
+parse(Path) ->
     try
-        case jiffy:decode(Bin) of
-            {[{<<"list">>, List}]} ->
-                handle_download(List);
-            _ ->
-                vffov_common:verbose(error, "Unable to parse JSON file!", [])
+        {ok, Bin} = file:read_file(Path),
+        case filename:extension(Path) of
+            ".json" -> parse_1(json, Bin);
+            ".txt"  -> parse_1(txt, Bin);
+            Other   -> throw({unknown_file_extension, Other})
         end
     catch
         _:Reason ->
-            vffov_common:verbose(error, "Unable to parse JSON file! Error ~p",
-                                 [Reason])
+            vffov_common:verbose(
+              error, "Unable to load playlist file! Error ~p",
+              [Reason]
+             )
+    end.
+
+parse_1(json, Bin) ->
+    case jiffy:decode(Bin) of
+        {[{<<"list">>, List}]} -> List;
+        _ -> empty_playlist
     end;
-parse(txt, Bin) ->
-    try
-        case string:tokens(erlang:binary_to_list(Bin), "\n") of
-            []   -> empty_playlist;
-            List -> handle_download(List)
-        end
-    catch
-        _:Reason ->
-            vffov_common:verbose(error, "Unable to parse text file! Error ~p",
-                                 [Reason])
+parse_1(txt, Bin) ->
+    case string:tokens(erlang:binary_to_list(Bin), "\n") of
+        []   -> empty_playlist;
+        List -> List
     end.
 
 deps() ->
