@@ -47,20 +47,25 @@ sanitize_urls(L) ->
 
 sanitize_url(Url) ->
     [Base, Part2] = string:tokens(Url, "?"),
-    [{_K,V}] = lists:flatten(
-                 lists:map(
-                   fun(P) ->
-                           [K,V] = string:tokens(P, "="),
-                           case K =:= "v" of
-                               true  -> {K,V};
-                               false -> []
-                           end
-                   end,
-                   string:tokens(Part2, "&")
-                  )
-                ),
-    Base ++ "?v=" ++ V.
-
+    case string:str(Base, "youtube.com") > 0 of
+        true ->
+            %% for YT videos remove all except video id parameter
+            [{_K,V}] = lists:flatten(
+                         lists:map(
+                           fun(P) ->
+                                   [K,V] = string:tokens(P, "="),
+                                   case K =:= "v" of
+                                       true  -> {K,V};
+                                       false -> []
+                                   end
+                           end,
+                           string:tokens(Part2, "&")
+                          )
+                        ),
+            Base ++ "?v=" ++ V;
+        false ->
+            Url
+    end.
 
 move_to_download_dir(Url) ->
     io:format("debug: move url=~p~n", [Url]),
