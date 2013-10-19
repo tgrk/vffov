@@ -10,6 +10,9 @@
 -export([
          verbose/3,
          priv_dir/1,
+         is_url/1,
+         sanitize_urls/1,
+         sanitize_url/1,
          move_to_download_dir/1,
          get_downloader/0,
          open_downloader_port/1,
@@ -33,6 +36,31 @@ priv_dir(App) ->
         Priv ->
             Priv ++ "/"
     end.
+
+is_url(S) when is_list(S) ->
+    string:str(S, "http://") > 0 orelse string:str("https://", S) > 0;
+is_url(_S) ->
+    false.
+
+sanitize_urls(L) ->
+    lists:map(fun sanitize_url/1, L).
+
+sanitize_url(Url) ->
+    [Base, Part2] = string:tokens(Url, "?"),
+    [{_K,V}] = lists:flatten(
+                 lists:map(
+                   fun(P) ->
+                           [K,V] = string:tokens(P, "="),
+                           case K =:= "v" of
+                               true  -> {K,V};
+                               false -> []
+                           end
+                   end,
+                   string:tokens(Part2, "&")
+                  )
+                ),
+    Base ++ "?v=" ++ V.
+
 
 move_to_download_dir(Url) ->
     io:format("debug: move url=~p~n", [Url]),

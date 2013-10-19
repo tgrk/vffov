@@ -41,7 +41,7 @@ stop() ->
 %%% Internal functionality
 %%%=============================================================================
 download_1(Input) ->
-    case is_url(Input) of
+    case vffov_common:is_url(Input) of
         true  ->
             %% handle input form console
             handle_download([Input]);
@@ -51,15 +51,16 @@ download_1(Input) ->
     end.
 
 process_url_list(L) when is_list(L) ->
-    case length(L) > 0 andalso is_url(hd(L)) of
+    case length(L) > 0 andalso vffov_common:is_url(hd(L)) of
         true  -> handle_download(L);
         false -> handle_download([L])
     end.
 
 handle_download(List) ->
+    Sanitized = vffov_common:sanitize_urls(List),
     case application:get_env(vffov, download_parallel, false) of
-        true  -> lists:foreach(fun download_file/1, List);
-        false -> queue_downloads(List)
+        true  -> lists:foreach(fun download_file/1, Sanitized);
+        false -> queue_downloads(Sanitized)
     end.
 
 download_file({[{<<"url">>, Url}]}) ->
@@ -69,11 +70,6 @@ download_file(Url) ->
 
 queue_downloads(List) ->
     vffov_sup:start_worker(vffov_queued_worker, List).
-
-is_url(S) when is_list(S) ->
-    string:str(S, "http://") > 0 orelse string:str("https://", S) > 0;
-is_url(_S) ->
-    false.
 
 parse(Path) ->
     try
