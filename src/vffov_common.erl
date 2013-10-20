@@ -68,17 +68,16 @@ sanitize_url(Url) ->
     end.
 
 move_to_download_dir(Url) ->
-    io:format("debug: move url=~p~n", [Url]),
     [_,Id] = string:tokens(Url, "v="),
-    [File] = lists:filter(
+    Files = lists:filter(
                fun(F) -> string:str(F, Id) > 0 end,
                filelib:wildcard("*")
               ),
-    Target = filename:join(
-               application:get_env(vffov, download_dir, ""),
-               File
-              ),
-    file:rename(File, Target).
+    TargetDir = application:get_env(vffov, download_dir, ""),
+    lists:foreach(
+      fun(File) -> file:rename(File, filename:join(TargetDir, File)) end,
+      Files
+     ).
 
 open_downloader_port(Url) ->
     erlang:open_port(
