@@ -36,7 +36,6 @@ init([]) ->
     ChildSpecs = [
                   statman(),
                   statman_aggregator(),
-                  statman_poller(),
                   statman_elli(),
                   elli()
                  ],
@@ -61,10 +60,6 @@ statman() ->
 
 statman_aggregator() ->
     {statman_aggregator, {statman_aggregator, start_link, []},
-     permanent, 5000, worker, []}.
-
-statman_poller() ->
-    {statman_gauge_poller, {statman_poller, start_link, []},
      permanent, 5000, worker, []}.
 
 statman_elli() ->
