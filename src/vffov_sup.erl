@@ -35,7 +35,6 @@ start_worker(Worker, Url) ->
 init([]) ->
     ChildSpecs = [
                   statman(),
-                  statman_aggregator(),
                   statman_elli(),
                   elli()
                  ],
@@ -55,12 +54,8 @@ get_worker_name(Worker) ->
 
 %% Childspecs required by statman dashboard
 statman() ->
-    {statman, {statman_server, start_link, [1000]},
-     permanent, 5000, worker, []}.
-
-statman_aggregator() ->
-    {statman_aggregator, {statman_aggregator, start_link, []},
-     permanent, 5000, worker, []}.
+    {statman, {statman_sup, start_link, [1000, true]},
+     permanent, 5000, supervisor, []}.
 
 statman_elli() ->
     {statman_elli, {statman_elli_server, start_link, []},
