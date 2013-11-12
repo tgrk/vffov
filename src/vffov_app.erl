@@ -19,7 +19,7 @@ start(_StartType, _StartArgs) ->
     case vffov_sup:start_link() of
         {ok, Pid} ->
             % add statsman
-            ok = statman_poller:add_gauge(fun statman_vm_metrics:get_gauges/0),
+            {ok, _} = statman_poller_sup:add_gauge(fun statman_vm_metrics:get_gauges/0),
             ok = statman_server:add_subscriber(statman_aggregator),
             {ok, Pid};
         {error, Reason} ->
@@ -32,3 +32,11 @@ stop(_State) ->
 %%%=============================================================================
 %%% Internal functionality
 %%%=============================================================================
+vffov_gauges() ->
+    case catch s3:stats() of
+        {ok, Stats} ->
+            Workers = proplists:get_value(num_workers, Stats),
+            [{{s3, workers}, Workers}];
+        _ ->
+            []
+    end.
