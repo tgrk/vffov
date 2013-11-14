@@ -11,6 +11,7 @@
 
 %% API
 -export([start_link/0, start_worker/2]).
+-export([get_stats/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -29,12 +30,19 @@ start_worker(Worker, Url) ->
             Pid
     end.
 
+get_stats() ->
+    StatsPL = supervisor:count_children(?MODULE),
+    [
+     {{vffov, workers}, proplists:get_value(workers, StatsPL)}
+    ].
+
 %%=============================================================================
 %% Supervisor callbacks
 %%=============================================================================
 init([]) ->
     ChildSpecs = [
                   statman(),
+                  statman_aggregator(),
                   statman_elli(),
                   elli()
                  ],
@@ -54,8 +62,12 @@ get_worker_name(Worker) ->
 
 %% Childspecs required by statman dashboard
 statman() ->
-    {statman, {statman_sup, start_link, [1000, true]},
+    {statman, {statman_sup, start_link, [1000]},
      permanent, 5000, supervisor, []}.
+
+statman_aggregator() ->
+    {statman_aggregator, {statman_aggregator, start_link, []},
+     permanent, 5000, worker, []}.
 
 statman_elli() ->
     {statman_elli, {statman_elli_server, start_link, []},
