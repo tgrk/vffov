@@ -10,7 +10,7 @@
 -behaviour(application).
 
 %% API
--export([process_sizes/0, total_memory/1]).
+-export([process_sizes/0]).
 
 %% Application callbacks
 -export([start/2, stop/1]).
@@ -26,7 +26,7 @@ start(_StartType, _StartArgs) ->
                         fun statman_vm_metrics:get_gauges/0),
             {ok, _} = statman_poller_sup:add_counter(fun vffov_sup:get_stats/0),
             {ok, _} = statman_poller_sup:add_histogram(
-                        fun vffov_app:process_sizes/0, 6000),
+                        fun ?MODULE:process_sizes/0, 6000),
             ok = statman_server:add_subscriber(statman_aggregator),
 
             {ok, Pid};

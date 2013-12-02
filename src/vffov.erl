@@ -99,4 +99,4 @@ parse_1(txt, Bin) ->
     end.
 
 deps() ->
-    [compiler, syntax_tools, lager, jiffy].
+    [compiler, syntax_tools, lager, jiffy, statman].

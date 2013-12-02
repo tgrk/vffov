@@ -41,7 +41,6 @@ get_stats() ->
 %%=============================================================================
 init([]) ->
     ChildSpecs = [
-                  statman(),
                   statman_aggregator(),
                   statman_elli(),
                   elli()
@@ -61,10 +60,6 @@ get_worker_name(Worker) ->
     list_to_atom(atom_to_list(Worker) ++ "_" ++ integer_to_list(Mics)).
 
 %% Childspecs required by statman dashboard
-statman() ->
-    {statman, {statman_sup, start_link, [1000]},
-     permanent, 5000, supervisor, []}.
-
 statman_aggregator() ->
     {statman_aggregator, {statman_aggregator, start_link, []},
      permanent, 5000, worker, []}.
