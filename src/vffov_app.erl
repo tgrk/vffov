@@ -39,7 +39,7 @@ stop(_State) ->
 
 process_sizes() ->
     %%TODO: limit only to vffov_workers
-    Pids = lists:map(fun ({_, Pid, _, []}) -> Pid end,
+    Pids = lists:map(fun ({_, Pid, _, _}) -> Pid end,
                      supervisor:which_children(vffov_sup)),
     lists:zf(fun (P) ->
                      case total_memory(P) of
