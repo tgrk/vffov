@@ -9,5 +9,5 @@
               {env,[{download_dir,"/home/wiso/Videos/"},
                     {download_parallel,true},
                     {enable_logging,false},
-                    {downloader_path,"/usr/bin/clive"},
+                    {downloader_path,"/usr/bin/youtube-dl"},
                     {downloader_params,"--quiet"}]}]}.

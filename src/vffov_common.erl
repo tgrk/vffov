@@ -46,31 +46,32 @@ sanitize_urls(L) ->
     lists:map(fun sanitize_url/1, L).
 
 sanitize_url(Url) ->
-    [Base, Part2] = string:tokens(Url, "?"),
-    case string:str(Base, "youtube.com") > 0 of
-        true ->
-            %% for YT videos remove all except video id parameter
-            [{_K,V}] = lists:flatten(
-                         lists:map(
-                           fun(P) ->
-                                   [K,V] = string:tokens(P, "="),
-                                   case K =:= "v" of
-                                       true  -> {K,V};
-                                       false -> []
-                                   end
-                           end,
-                           string:tokens(Part2, "&")
-                          )
-                        ),
-            Base ++ "?v=" ++ V;
-        false ->
-            Url
+    case string:tokens(Url, "?") of
+        [_] -> Url;
+        [Base, Part2] ->
+            case string:str(Base, "youtube.com") > 0 of
+                true ->
+                    %% for YT videos remove all except video id parameter
+                    [{_K,V}] = lists:filtermap(
+                                 fun(P) ->
+                                         [K,V] = string:tokens(P, "="),
+                                         case K =:= "v" of
+                                             true  -> {true, {K,V}};
+                                             false -> false
+                                         end
+                                 end,
+                                 string:tokens(Part2, "&")
+                                ),
+                    Base ++ "?v=" ++ V;
+                false ->
+                    Url
+            end
     end.
 
 move_to_download_dir(Url) ->
-    [_,Id] = string:tokens(Url, "v="),
+    [_|Id] = string:tokens(Url, "v="),
     Files = lists:filter(
-               fun(F) -> string:str(F, Id) > 0 end,
+               fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
                filelib:wildcard("*")
               ),
     TargetDir = application:get_env(vffov, download_dir, ""),
@@ -89,7 +90,7 @@ close_downloader_port(Port) ->
     erlang:port_close(Port).
 
 get_downloader() ->
-    application:get_env(vffov, downloader_path, "/usr/bin/clive").
+    application:get_env(vffov, downloader_path, "/usr/bin/youtube-dl").
 
 %%=============================================================================
 %% Internal functionality
@@ -100,6 +101,6 @@ build_downloader_command(Url) ->
         "~s ~s ~s ~s",
         [get_downloader(),
          application:get_env(vffov, downloader_params, ""),
-         "--filename-format '%t-%i.%s'",
+         "-t ",
          Url])
      ).
