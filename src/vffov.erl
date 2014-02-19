@@ -10,6 +10,8 @@
 %% API
 -export([download/0,
          download/1,
+         download_pocket/1,
+
          start/0,
          stop/0
         ]).
@@ -28,11 +30,48 @@ download(L) when is_list(L) ->
                 false -> process_url_list(L)
             end;
         false ->
-            lager:error("Clive downloader not found!")
+            vffov_common:verbose(error, "Downloader not found! Please check "
+                                 "configuration.", [])
+    end.
+
+download_pocket(Opts) ->
+    case pocket_oauth() of
+        {ok, {request_url, Url}} ->
+            vffov_common:verbose(info, "Open following ~p in your browser and"
+                                 " run again.~n", [Url]);
+        {ok, [ConsumerKey, AccessToken]} ->
+            case erlpocket:retrieve(ConsumerKey, AccessToken, Opts) of
+                {ok, Result}    ->
+                    {[{<<"status">>,1},
+                      {<<"complete">>,1},
+                      {<<"list">>, {Items}}, _]} = Result,
+                    List = lists:map(
+                             fun({_Id, {Item}}) ->
+                                     binary_to_list(
+                                       proplists:get_value(<<"given_url">>, Item))
+                             end, Items),
+                    handle_download(List);
+                {error, Reason} ->
+                    vffov_common:verbose(error,
+                                         "Unable to get items from getpocket "
+                                         "service! Error ~p", [Reason])
+            end;
+        error ->
+            vffov_common:verbose(error,
+                                 "Unable to reqeust authentification code! "
+                                 "Check you consumer key!", [])
     end.
 
 start() ->
-    [application:start(A) || A <- deps() ++ [vffov]].
+    [application:start(A) || A <- deps()],
+
+    application:ensure_all_started(ssl),
+    application:ensure_all_started(inets),
+
+    application:ensure_all_started(erlpocket),
+    application:set_env(erlpocket, verbose, true),
+
+    application:start(vffov).
 
 stop() ->
     [application:stop(A) || A <- deps() ++ [vffov]].
@@ -81,10 +120,9 @@ parse(Path) ->
         end
     catch
         _:Reason ->
-            vffov_common:verbose(
-              error, "Unable to load playlist file! Error ~p",
-              [Reason]
-             )
+            vffov_common:verbose(error,
+                                 "Unable to load playlist file! Error ~p",
+                                 [Reason])
     end.
 
 parse_1(json, Bin) ->
@@ -96,6 +134,34 @@ parse_1(txt, Bin) ->
     case string:tokens(erlang:binary_to_list(Bin), "\n") of
         []   -> empty_playlist;
         List -> List
+    end.
+
+%%TODO: validate if consumer_key is not present
+pocket_oauth() ->
+    [Keys] = vffov_common:read_pocket_credentials(),
+    ConsumerKey = proplists:get_value(consumer_key, Keys),
+    case proplists:get_value(code, Keys) of
+        [] ->
+            case erlpocket:request_token(ConsumerKey, "http://www.wiso.cz/") of
+                {ok, [{code, Code}]} ->
+                    vffov_common:write_pocket_credentials(Code, ConsumerKey, []),
+                    Url = erlpocket:get_authorize_url(Code, "http://www.wiso.cz/"),
+                    {ok, {request_url, Url}};
+                _ ->
+                    error
+            end;
+        Code ->
+            AccessToken = case proplists:get_value(access_token, Keys) =:= [] of
+                              true ->
+                                  Code = proplists:get_value(code, Keys),
+                                  AuthResp = erlpocket:authorize(ConsumerKey, Code),
+                                  {ok, [{access_token, AccessToken1},{username, _Username}]} = AuthResp,
+                                  vffov_common:write_pocket_credentials(Code, ConsumerKey, AccessToken1),
+                                  AccessToken1;
+                              false ->
+                                  proplists:get_value(access_token, Keys)
+                          end,
+            {ok, [ConsumerKey, AccessToken]}
     end.
 
 deps() ->

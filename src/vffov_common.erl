@@ -16,7 +16,9 @@
          move_to_download_dir/1,
          get_downloader/0,
          open_downloader_port/1,
-         close_downloader_port/1
+         close_downloader_port/1,
+         read_pocket_credentials/0,
+         write_pocket_credentials/3
         ]).
 
 %%=============================================================================
@@ -91,6 +93,22 @@ close_downloader_port(Port) ->
 
 get_downloader() ->
     application:get_env(vffov, downloader_path, "/usr/bin/youtube-dl").
+
+write_pocket_credentials(Code, ConsumerKey, AccessToken) ->
+    Data = [{code, Code},
+            {consumer_key, ConsumerKey},
+            {access_token, AccessToken}],
+    file:write_file("priv/getpocket.term", io_lib:format("~p.", [Data]),
+                    [write]).
+
+read_pocket_credentials() ->
+    case file:consult("priv/getpocket.term") of
+        {ok, Keys} ->
+            Keys;
+        Other ->
+            io:format("error - ~p~n", [Other]),
+            throw("Unable to read stored credentials!")
+    end.
 
 %%=============================================================================
 %% Internal functionality

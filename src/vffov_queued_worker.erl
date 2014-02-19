@@ -5,7 +5,7 @@
 %%% @end
 %%% Created : 29 Apr 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
--module(vffov_queue_worker).
+-module(vffov_queued_worker).
 
 -behaviour(gen_server).
 
