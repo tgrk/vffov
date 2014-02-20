@@ -44,13 +44,19 @@ download_pocket(Opts) ->
                 {ok, Result}    ->
                     {[{<<"status">>,1},
                       {<<"complete">>,1},
-                      {<<"list">>, {Items}}, _]} = Result,
-                    List = lists:map(
-                             fun({_Id, {Item}}) ->
-                                     binary_to_list(
-                                       proplists:get_value(<<"given_url">>, Item))
-                             end, Items),
-                    handle_download(List);
+                      {<<"list">>, Items}, _]} = Result,
+                    case Items of
+                        [] ->
+                            vffov_common:verbose(info, "No matching items.~n",
+                                                 []);
+                        {Items} ->
+                            List = lists:map(
+                                     fun({_Id, {Item}}) ->
+                                             binary_to_list(
+                                               proplists:get_value(<<"given_url">>, Item))
+                                     end, Items),
+                            handle_download(List)
+                    end;
                 {error, Reason} ->
                     vffov_common:verbose(error,
                                          "Unable to get items from getpocket "
@@ -64,13 +70,7 @@ download_pocket(Opts) ->
 
 start() ->
     [application:start(A) || A <- deps()],
-
-    application:ensure_all_started(ssl),
-    application:ensure_all_started(inets),
-
-    application:ensure_all_started(erlpocket),
-    application:set_env(erlpocket, verbose, true),
-
+    load_getpocket(application:get_env(vffov, enable_pocket)),
     application:start(vffov).
 
 stop() ->
@@ -79,6 +79,14 @@ stop() ->
 %%%=============================================================================
 %%% Internal functionality
 %%%=============================================================================
+load_getpocket({ok, true}) ->
+    application:ensure_all_started(ssl),
+    application:ensure_all_started(inets),
+    application:ensure_all_started(erlpocket),
+    application:set_env(erlpocket, verbose, true);
+load_getpocket(_) ->
+    none.
+
 download_1(Input) ->
     case vffov_common:is_url(Input) of
         true  ->

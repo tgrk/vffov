@@ -8,6 +8,7 @@
               {mod,{vffov_app,[]}},
               {env,[{download_parallel,true},
                     {enable_logging,false},
+                    {enable_getpocket,true},
                     {download_dir,"/home/wiso/Videos/"},
                     {downloader_path,"/usr/bin/youtube-dl"},
                     {downloader_params,"--quiet"}]}]}.
