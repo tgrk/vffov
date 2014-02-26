@@ -12,7 +12,8 @@
 %% API
 -export([
          start_link/2,
-         stop/0
+         stop/0,
+         get_url/0
         ]).
 
 %% gen_server callbacks
@@ -30,6 +31,9 @@ start_link(Name, Url) ->
 stop() ->
     gen_server:cast(?MODULE, stop).
 
+get_url() ->
+    gen_server:call(?MODULE, current_url).
+
 %%%============================================================================
 %%% gen_server callbacks
 %%%============================================================================
@@ -37,6 +41,8 @@ init([Url]) ->
     process_flag(trap_exit, true),
     {ok, #state{current_url = Url}, 0}.
 
+handle_call(current_url, _From, State) ->
+    {reply, {ok, State#state.current_url}, State};
 handle_call(Call, From, State) ->
     vffov_common:verbose(error, "Unmatched call ~p from ~p", [Call, From]),
     {reply, invalid_call, State}.

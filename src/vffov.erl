@@ -12,6 +12,8 @@
          download/1,
          download_pocket/1,
 
+         status/0,
+
          start/0,
          stop/0
         ]).
@@ -68,9 +70,27 @@ download_pocket(Opts) ->
                                  "Check you consumer key!", [])
     end.
 
+
+status() ->
+    Childs = supervisor:which_children(vffov_sup),
+    lists:filtermap(
+      fun ({_Id, Pid, worker, [vffov_parallel_worker]}) ->
+              {ok, Url} = gen_server:call(Pid, current_url),
+              {true, {paralel_worker, Url}};
+          ({_Id, Pid, worker, [vffov_queued_worker]}) ->
+              {ok, Url} = gen_server:call(Pid, current_url),
+              {true, {queued_worker, Url}};
+          (_) ->
+              false
+      end, Childs).
+
 start() ->
     [application:start(A) || A <- deps()],
-    load_getpocket(application:get_env(vffov, enable_pocket)),
+    application:load(vffov),
+
+    %% load plugins
+    load_getpocket(application:get_env(vffov, enable_getpocket)),
+
     application:start(vffov).
 
 stop() ->
