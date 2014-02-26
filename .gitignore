@@ -7,3 +7,4 @@ log
 *.beam
 *.plt
 priv/getpocket.term
+priv/youtube.term
