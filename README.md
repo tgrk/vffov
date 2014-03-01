@@ -23,24 +23,24 @@ following call:
 
 Add Url directly from console:
 ```erlang
-1> vffov:download("http://foo.bar").
+2> vffov:download("http://foo.bar").
 ```
 
 Or add list of Urls from console:
 ```erlang
-1> L = ["http://foo.bar"].
-2> vffov:download(L).
+3> L = ["http://foo.bar"].
+4> vffov:download(L).
 ```
 
 You could also use default playlist that is stored in ```priv/playlist.txt``:
 
 ```erlang
-2> vffov:download().
+5> vffov:download().
 ```
 
 List current active jobs/workers:
 ```erlang
-1> vffov:status().
+6> vffov:status().
 ```
 
 Download list format
