@@ -2,7 +2,7 @@ VFFOV
 =====
 Video Fetcher For Offline View
 
-An Erlang app for downloading content for offline view (using [clive][2] tool).
+An Erlang app for downloading content for offline view (using [youtube-dl][2] tool).
 Downloads all videos in queued/parallel mode based on supplied list of URLs.
 
 Dependencies
@@ -10,7 +10,7 @@ Dependencies
 System dependencies (OS-level, libraries, binaries):
 * Erlang (>= R15)
 * [Rebar][1]
-* [clive][2]
+* [youtube-dl][2]
 
 Usage
 =====
@@ -38,6 +38,11 @@ You could also use default playlist that is stored in ```priv/playlist.txt``:
 2> vffov:download().
 ```
 
+List current active jobs/workers:
+```erlang
+1> vffov:status().
+```
+
 Download list format
 =====
 
@@ -56,5 +61,13 @@ JSON format:
 }
 ```
 
+Plugins
+=====
+* [GetPocket.com][3] - using [erlpocket][4] library
+* Youtube Watch Later - (not implemented yet)
+* Vimeo Watch Later - (not implemented yet)
+
 [1]: https://github.com/rebar/rebar
-[2]: http://clive.sf.net
+[2]: http://rg3.github.io/youtube-dl/
+[3]: http://getpocket.com
+[3]: https://github.com/tgrk/erlpocket
