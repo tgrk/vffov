@@ -70,4 +70,4 @@ Plugins
 [1]: https://github.com/rebar/rebar
 [2]: http://rg3.github.io/youtube-dl/
 [3]: http://getpocket.com
-[3]: https://github.com/tgrk/erlpocket
+[4]: https://github.com/tgrk/erlpocket
