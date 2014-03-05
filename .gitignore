@@ -8,3 +8,4 @@ log
 *.plt
 priv/getpocket.term
 priv/youtube.term
+ebin/vffov.app
