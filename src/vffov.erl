@@ -13,6 +13,7 @@
          download_pocket/1,
 
          status/0,
+         queue/0,
 
          start/0,
          stop/0
@@ -36,33 +37,20 @@ download(L) when is_list(L) ->
                                  "configuration.", [])
     end.
 
+%%TODO: remove from list after sucessfull download
 download_pocket(Opts) ->
-    case pocket_oauth() of
+    case vffov_getpocket:auth() of
         {ok, {request_url, Url}} ->
             vffov_common:verbose(info, "Open following ~p in your browser and"
                                  " run again.~n", [Url]);
         {ok, [ConsumerKey, AccessToken]} ->
-            case erlpocket:retrieve(ConsumerKey, AccessToken, Opts) of
-                {ok, Result}    ->
-                    {[{<<"status">>,1},
-                      {<<"complete">>,1},
-                      {<<"list">>, Items}, _]} = Result,
-                    case Items of
-                        [] ->
-                            vffov_common:verbose(info, "No matching items.~n",
-                                                 []);
-                        {Items} ->
-                            List = lists:map(
-                                     fun({_Id, {Item}}) ->
-                                             binary_to_list(
-                                               proplists:get_value(<<"given_url">>, Item))
-                                     end, Items),
-                            handle_download(List)
-                    end;
+            case vffov_getpocket:list([ConsumerKey, AccessToken, Opts]) of
+                empty -> vffov_common:verbose(info, "No matching items.~n", []);
                 {error, Reason} ->
                     vffov_common:verbose(error,
                                          "Unable to get items from getpocket "
-                                         "service! Error ~p", [Reason])
+                                         "service! Error ~p", [Reason]);
+                List  -> handle_download(List)
             end;
         error ->
             vffov_common:verbose(error,
@@ -72,7 +60,6 @@ download_pocket(Opts) ->
 
 
 status() ->
-    Childs = supervisor:which_children(vffov_sup),
     lists:filtermap(
       fun ({_Id, Pid, worker, [vffov_parallel_worker]}) ->
               {ok, Url} = gen_server:call(Pid, current_url),
@@ -82,14 +69,22 @@ status() ->
               {true, {queued_worker, Url}};
           (_) ->
               false
-      end, Childs).
+      end, supervisor:which_children(vffov_sup)).
+
+queue() ->
+    lists:filtermap(
+      fun ({_Id, Pid, worker, [vffov_queued_worker]}) ->
+              {ok, Queue} = gen_server:call(Pid, current_queue),
+              {true, Queue};
+          (_) ->
+              false
+      end, supervisor:which_children(vffov_sup)).
 
 start() ->
     [application:start(A) || A <- deps()],
     application:load(vffov),
 
-    %% load plugins
-    load_getpocket(application:get_env(vffov, enable_getpocket)),
+    load_plugins(),
 
     application:start(vffov).
 
@@ -99,13 +94,20 @@ stop() ->
 %%%=============================================================================
 %%% Internal functionality
 %%%=============================================================================
-load_getpocket({ok, true}) ->
-    application:ensure_all_started(ssl),
-    application:ensure_all_started(inets),
-    application:ensure_all_started(erlpocket),
-    application:set_env(erlpocket, verbose, true);
-load_getpocket(_) ->
-    none.
+load_plugins() ->
+    Plugins = [getpocket],
+    lists:foreach(
+      fun (Plugin) ->
+              PluginL = atom_to_list(Plugin),
+              Key = list_to_atom("enable_" ++ PluginL),
+              case application:get_env(vffov, Key) of
+                  {ok, true} ->
+                      Module = list_to_atom("vffov_" ++ PluginL),
+                      Module:load();
+                  _ -> ignore
+              end
+      end, Plugins),
+    ok.
 
 download_1(Input) ->
     case vffov_common:is_url(Input) of
@@ -162,34 +164,6 @@ parse_1(txt, Bin) ->
     case string:tokens(erlang:binary_to_list(Bin), "\n") of
         []   -> empty_playlist;
         List -> List
-    end.
-
-%%TODO: validate if consumer_key is not present
-pocket_oauth() ->
-    [Keys] = vffov_common:read_pocket_credentials(),
-    ConsumerKey = proplists:get_value(consumer_key, Keys),
-    case proplists:get_value(code, Keys) of
-        [] ->
-            case erlpocket:request_token(ConsumerKey, "http://www.wiso.cz/") of
-                {ok, [{code, Code}]} ->
-                    vffov_common:write_pocket_credentials(Code, ConsumerKey, []),
-                    Url = erlpocket:get_authorize_url(Code, "http://www.wiso.cz/"),
-                    {ok, {request_url, Url}};
-                _ ->
-                    error
-            end;
-        Code ->
-            AccessToken = case proplists:get_value(access_token, Keys) =:= [] of
-                              true ->
-                                  Code = proplists:get_value(code, Keys),
-                                  AuthResp = erlpocket:authorize(ConsumerKey, Code),
-                                  {ok, [{access_token, AccessToken1},{username, _Username}]} = AuthResp,
-                                  vffov_common:write_pocket_credentials(Code, ConsumerKey, AccessToken1),
-                                  AccessToken1;
-                              false ->
-                                  proplists:get_value(access_token, Keys)
-                          end,
-            {ok, [ConsumerKey, AccessToken]}
     end.
 
 deps() ->

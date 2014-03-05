@@ -16,9 +16,12 @@
         ]},
         {mod, {vffov_app, []}},
         {env, [
-               {download_parallel,  true},
-               {enable_logging,     false},
+               {download_parallel,  false},
+
                {enable_getpocket,   true},
+               {enable_youtube,     true},
+
+               {enable_logging,     false},
                {download_dir,       "/home/wiso/Videos/"},
                {downloader_path,    "/usr/bin/youtube-dl"},
                {downloader_params,  "--quiet"}
