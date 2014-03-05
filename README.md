@@ -43,6 +43,11 @@ List current active jobs/workers:
 6> vffov:status().
 ```
 
+List current queued jobs/workers (works only if download_parallel=false}:
+```erlang
+7> vffov:queue().
+```
+
 Download list format
 =====
 
