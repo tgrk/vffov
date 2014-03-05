@@ -12,7 +12,9 @@
 %% API
 -export([
          start_link/2,
-         stop/0
+         stop/0,
+         get_url/0,
+         get_queue/0
         ]).
 
 %% gen_server callbacks
@@ -30,13 +32,26 @@ start_link(Name, Queue) ->
 stop() ->
     gen_server:cast(?MODULE, stop).
 
+get_url() ->
+    gen_server:call(?MODULE, current_url).
+
+get_queue() ->
+    gen_server:call(?MODULE, current_queue).
+
 %%%============================================================================
 %%% gen_server callbacks
 %%%============================================================================
 init([Queue]) ->
     process_flag(trap_exit, true),
-    {ok, #state{queue = queue:from_list(Queue), current_url = undefined}, 0}.
+    {ok, #state{queue = queue:from_list(Queue), current_url = undefined}, 0};
+init([]) ->
+    process_flag(trap_exit, true),
+    {ok, #state{queue = queue:new(), current_url = undefined}, 0}.
 
+handle_call(current_url, _From, State) ->
+    {reply, {ok, State#state.current_url}, State};
+handle_call(current_queue, _From, State) ->
+    {reply, {ok, State#state.queue}, State};
 handle_call(Call, From, State) ->
     vffov_common:verbose(error, "Unmatched call ~p from ~p", [Call, From]),
     {reply, invalid_call, State}.
@@ -74,7 +89,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================
 %%% Internal functionality
 %%%============================================================================
-do_download(#state{port = undefined, queue =  Queue} = State) ->
+do_download(#state{queue = Queue} = State) ->
    case queue:out(Queue) of
       {{value, Url}, Queue2} ->
            vffov_common:verbose(info, "Downloading video from url ~s", [Url]),
@@ -85,6 +100,10 @@ do_download(#state{port = undefined, queue =  Queue} = State) ->
        _ ->
            {stop, normal, State#state{queue = [], current_url = []}}
    end;
-do_download(#state{port = Port} = State) ->
-    vffov_common:close_downloader_port(Port),
-    do_download(State#state{port = undefined}).
+do_download(#state{port = Port, queue = []} = State) ->
+    try
+        vffov_common:close_downloader_port(Port)
+    catch
+        _:_ -> ignore
+    end,
+    {stop, normal, State#state{queue = [], current_url = []}}.
