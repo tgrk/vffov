@@ -20,7 +20,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {current_url}).
+-record(state, {id, current_url}).
 
 %%%============================================================================
 %%% API
@@ -37,9 +37,12 @@ get_url() ->
 %%%============================================================================
 %%% gen_server callbacks
 %%%============================================================================
+init([{Id, Url}]) ->
+    process_flag(trap_exit, true),
+    {ok, #state{id = Id, current_url = Url}, 0};
 init([Url]) ->
     process_flag(trap_exit, true),
-    {ok, #state{current_url = Url}, 0}.
+    {ok, #state{id = undefined, current_url = Url}, 0}.
 
 handle_call(current_url, _From, State) ->
     {reply, {ok, State#state.current_url}, State};
@@ -65,9 +68,16 @@ handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
 handle_info({_Port, {exit_status,23}}, State) ->
     vffov_common:verbose(info, "Unable to download file! No space left.", []),
     {stop, normal, State};
-handle_info({_Port, {exit_status, 0}}, #state{current_url = Url} = State) ->
+handle_info({_Port, {exit_status, 0}}, #state{id = Id, current_url = Url}
+            = State) ->
     vffov_common:verbose(info, "Finished downloading ~s", [Url]),
     vffov_common:move_to_download_dir(Url),
+
+    %% mark as downloaded (getpocket)
+    case Id =/= undefined of
+        true  -> vffov_getpocket:mark_read(Id);
+        false -> ignore
+    end,
     {stop, normal, State};
 handle_info({'EXIT', _Port, normal}, State) ->
     {stop, normal, State};

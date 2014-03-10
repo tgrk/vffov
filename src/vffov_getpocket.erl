@@ -8,7 +8,7 @@
 -module(vffov_getpocket).
 
 %% API
--export([load/0, auth/0, list/1]).
+-export([load/0, auth/0, list/1, mark_read/1]).
 
 %%%============================================================================
 %%% API
@@ -33,20 +33,20 @@ auth() ->
                     error
             end;
         Code ->
-            AccessToken = case proplists:get_value(access_token, Keys) =:= [] of
-                              true ->
-                                  Code = proplists:get_value(code, Keys),
-                                  AuthResp = erlpocket:authorize(ConsumerKey, Code),
-                                  {ok, [{access_token, AccessToken1},{username, _Username}]} = AuthResp,
-                                  vffov_common:write_pocket_credentials(Code, ConsumerKey, AccessToken1),
-                                  AccessToken1;
-                              false ->
-                                  proplists:get_value(access_token, Keys)
-                          end,
-            {ok, [ConsumerKey, AccessToken]}
+            case proplists:get_value(access_token, Keys) =:= [] of
+                true ->
+                    Code = proplists:get_value(code, Keys),
+                    AuthResp = erlpocket:authorize(ConsumerKey, Code),
+                    {ok, [{access_token, AccessToken1},{username, _Username}]} = AuthResp,
+                    vffov_common:write_pocket_credentials(Code, ConsumerKey, AccessToken1);
+                false ->
+                    proplists:get_value(access_token, Keys)
+            end,
+            ok
     end.
 
-list([ConsumerKey, AccessToken, Options]) ->
+list(Options) ->
+    {ConsumerKey, AccessToken} = get_credentials(),
     case erlpocket:retrieve(ConsumerKey, AccessToken, Options) of
         {ok, _, Result}    ->
             {[{<<"status">>,1},
@@ -56,15 +56,27 @@ list([ConsumerKey, AccessToken, Options]) ->
                 [] -> empty;
                 Items ->
                     lists:map(
-                      fun({_Id, {Item}}) ->
-                              binary_to_list(
-                                proplists:get_value(<<"given_url">>, Item))
+                      fun({Id, {Item}}) ->
+                              {binary_to_list(Id),
+                               binary_to_list(
+                                 proplists:get_value(<<"given_url">>, Item))
+                              }
                       end, Items)
             end;
         {error, Reason} ->
             {error, {unable_to_list, Reason}}
     end.
 
+mark_read(ItemId) ->
+    {ConsumerKey, AccessToken} = get_credentials(),
+    io:format("debug: mark_read=~p~n", [ItemId]),
+    not_implemented.
+
 %%%============================================================================
 %%% Internal functionality
 %%%============================================================================
+get_credentials() ->
+    [Keys] = vffov_common:read_pocket_credentials(),
+    ConsumerKey = proplists:get_value(consumer_key, Keys),
+    AccessToken = proplists:get_value(access_token, Keys),
+    {ConsumerKey, AccessToken}.

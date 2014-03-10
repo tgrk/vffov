@@ -21,7 +21,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {port, queue, current_url}).
+-record(state, {port, queue, id = undefined, current_url = undefined}).
 
 %%%============================================================================
 %%% API
@@ -42,11 +42,11 @@ get_queue() ->
 %%% gen_server callbacks
 %%%============================================================================
 init([Queue]) ->
-    process_flag(trap_exit, true),
-    {ok, #state{queue = queue:from_list(Queue), current_url = undefined}, 0};
+    process_flag(trap_exit, false),
+    {ok, #state{queue = queue:from_list(Queue)}, 0};
 init([]) ->
-    process_flag(trap_exit, true),
-    {ok, #state{queue = queue:new(), current_url = undefined}, 0}.
+    process_flag(trap_exit, false),
+    {ok, #state{queue = queue:new()}, 0}.
 
 handle_call(current_url, _From, State) ->
     {reply, {ok, State#state.current_url}, State};
@@ -70,12 +70,21 @@ handle_info({_Port, {data, Data}}, #state{current_url = Url} = State) ->
 handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
     vffov_common:verbose(info, "Downloading stopped ~s", [Url]),
     do_download(State);
-handle_info({_Port, {exit_status, 0}}, #state{current_url = Url} = State) ->
+handle_info({_Port, {exit_status, 0}}, #state{id = Id, current_url = Url}
+            = State) ->
     vffov_common:verbose(info, "Finished downloading ~s", [Url]),
     vffov_common:move_to_download_dir(Url),
+
+    %% mark as downloaded (getpocket)
+    case Id =/= undefined of
+        true  -> vffov_getpocket:mark_read(Id);
+        false -> ignore
+    end,
     do_download(State);
-handle_info({'EXIT', _Port, normal}, State) ->
+handle_info({'EXIT', _Port, normal}, #state{queue = []} = State) ->
     {stop, normal, State};
+handle_info({'EXIT', _Port, normal}, State) ->
+    do_download(State);
 handle_info(Info, State) ->
     vffov_common:verbose(error, "Unmatched info ~p, ~p", [Info, State]),
     {noreply, State}.
@@ -91,7 +100,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================
 do_download(#state{queue = Queue} = State) ->
    case queue:out(Queue) of
-      {{value, Url}, Queue2} ->
+      {{value, {Id, Url}}, Queue2} ->
+           vffov_common:verbose(info, "Downloading video from url ~s", [Url]),
+           Port = vffov_common:open_downloader_port(Url),
+           {noreply,
+            State#state{port = Port, queue = Queue2, current_url = Url}
+           };
+       {{value, Url}, Queue2} ->
            vffov_common:verbose(info, "Downloading video from url ~s", [Url]),
            Port = vffov_common:open_downloader_port(Url),
            {noreply,
@@ -99,11 +114,4 @@ do_download(#state{queue = Queue} = State) ->
            };
        _ ->
            {stop, normal, State#state{queue = [], current_url = []}}
-   end;
-do_download(#state{port = Port, queue = []} = State) ->
-    try
-        vffov_common:close_downloader_port(Port)
-    catch
-        _:_ -> ignore
-    end,
-    {stop, normal, State#state{queue = [], current_url = []}}.
+   end.

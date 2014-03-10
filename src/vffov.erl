@@ -43,9 +43,10 @@ download_pocket(Opts) ->
         {ok, {request_url, Url}} ->
             vffov_common:verbose(info, "Open following ~p in your browser and"
                                  " run again.~n", [Url]);
-        {ok, [ConsumerKey, AccessToken]} ->
-            case vffov_getpocket:list([ConsumerKey, AccessToken, Opts]) of
-                empty -> vffov_common:verbose(info, "No matching items.~n", []);
+        ok ->
+            case vffov_getpocket:list(Opts) of
+                empty ->
+                    vffov_common:verbose(info, "No matching items.~n", []);
                 {error, Reason} ->
                     vffov_common:verbose(error,
                                          "Unable to get items from getpocket "

@@ -47,6 +47,8 @@ is_url(_S) ->
 sanitize_urls(L) ->
     lists:map(fun sanitize_url/1, L).
 
+sanitize_url({Id, Url}) ->
+    {Id, sanitize_url(Url)};
 sanitize_url(Url) ->
     case string:tokens(Url, "?") of
         [_] -> Url;
@@ -71,7 +73,7 @@ sanitize_url(Url) ->
     end.
 
 move_to_download_dir(Url) ->
-    [_|Id] = string:tokens(Url, "v="),
+    [_ | Id] = string:tokens(Url, "v="),
     Files = lists:filter(
                fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
                filelib:wildcard("*")
