@@ -8,7 +8,7 @@
 -module(vffov_getpocket).
 
 %% API
--export([load/0, auth/0, list/1, mark_read/1]).
+-export([load/0, auth/0, list/1, mark_done/1]).
 
 %%%============================================================================
 %%% API
@@ -67,10 +67,13 @@ list(Options) ->
             {error, {unable_to_list, Reason}}
     end.
 
-mark_read(ItemId) ->
+mark_done(ItemId) ->
     {ConsumerKey, AccessToken} = get_credentials(),
-    io:format("debug: mark_read=~p~n", [ItemId]),
-    not_implemented.
+    io:format("debug: mark_done=~p~n", [ItemId]),
+    case erlpocket:delete(ConsumerKey, AccessToken, ItemId) of
+        {ok,{[{<<"action_results">>,[true]},{<<"status">>,1}]}} -> true;
+        _ -> false
+    end.
 
 %%%============================================================================
 %%% Internal functionality

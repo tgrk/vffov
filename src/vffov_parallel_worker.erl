@@ -75,7 +75,7 @@ handle_info({_Port, {exit_status, 0}}, #state{id = Id, current_url = Url}
 
     %% mark as downloaded (getpocket)
     case Id =/= undefined of
-        true  -> vffov_getpocket:mark_read(Id);
+        true  -> vffov_getpocket:mark_done(Id);
         false -> ignore
     end,
     {stop, normal, State};
