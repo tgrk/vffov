@@ -72,7 +72,7 @@ handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
     do_download(State);
 handle_info({_Port, {exit_status, 0}}, #state{id = Id, current_url = Url}
             = State) ->
-    vffov_common:verbose(info, "Finished downloading ~s", [Url]),
+    vffov_common:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
     vffov_common:move_to_download_dir(Url),
 
     %% mark as downloaded (getpocket)
@@ -104,7 +104,7 @@ do_download(#state{queue = Queue} = State) ->
            vffov_common:verbose(info, "Downloading video from url ~s", [Url]),
            Port = vffov_common:open_downloader_port(Url),
            {noreply,
-            State#state{port = Port, queue = Queue2, current_url = Url}
+            State#state{port = Port, queue = Queue2, id = Id, current_url = Url}
            };
        {{value, Url}, Queue2} ->
            vffov_common:verbose(info, "Downloading video from url ~s", [Url]),
