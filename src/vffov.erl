@@ -37,7 +37,6 @@ download(L) when is_list(L) ->
                                  "configuration.", [])
     end.
 
-%%TODO: remove from list after sucessfull download
 download_pocket(Opts) ->
     case vffov_getpocket:auth() of
         {ok, {request_url, Url}} ->
