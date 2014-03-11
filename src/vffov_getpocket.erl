@@ -17,7 +17,7 @@ load() ->
     application:ensure_all_started(ssl),
     application:ensure_all_started(inets),
     application:ensure_all_started(erlpocket),
-    application:set_env(erlpocket, verbose, true).
+    application:set_env(erlpocket, verbose, false).
 
 auth() ->
     [Keys] = vffov_common:read_pocket_credentials(),
@@ -55,12 +55,14 @@ list(Options) ->
             case Items of
                 [] -> empty;
                 Items ->
-                    lists:map(
+                    lists:filtermap(
                       fun({Id, {Item}}) ->
-                              {binary_to_list(Id),
-                               binary_to_list(
-                                 proplists:get_value(<<"given_url">>, Item))
-                              }
+                              %% download only youtube based videos
+                              Url = binary_to_list(proplists:get_value(<<"given_url">>, Item)),
+                              case string:str(Url, "youtube.com") > 0 of
+                                  true  -> {true, {binary_to_list(Id), Url}};
+                                  false -> false
+                              end
                       end, Items)
             end;
         {error, Reason} ->
@@ -69,8 +71,8 @@ list(Options) ->
 
 mark_done(ItemId) ->
     {ConsumerKey, AccessToken} = get_credentials(),
-    io:format("debug: mark_done=~p~n", [ItemId]),
-    case erlpocket:delete(ConsumerKey, AccessToken, ItemId) of
+    vffov_common:verbose(info, "Marking video with id=~p as done.", [ItemId]),
+    case erlpocket:delete(ConsumerKey, AccessToken, list_to_binary(ItemId)) of
         {ok,{[{<<"action_results">>,[true]},{<<"status">>,1}]}} -> true;
         _ -> false
     end.
