@@ -1,19 +1,19 @@
-VFFOV
-=====
+#VFFOV
+
 Video Fetcher For Offline View
 
 An Erlang app for downloading content for offline view (using [youtube-dl][2] tool).
 Downloads all videos in queued/parallel mode based on supplied list of URLs.
 
-Dependencies
-=====
+##Dependencies
+
 System dependencies (OS-level, libraries, binaries):
 * Erlang (>= R15)
 * [Rebar][1]
 * [youtube-dl][2]
 
-Usage
-=====
+##Usage
+
 Start application using `start.sh` script. Then start downloading using
 following call:
 
@@ -48,8 +48,7 @@ List current queued jobs/workers (works only if download_parallel=false}:
 7> vffov:queue().
 ```
 
-Download list format
-=====
+## Download list format
 
 Text format:
 ```
@@ -66,14 +65,14 @@ JSON format:
 }
 ```
 
-Plugins
-=====
+##Plugins
+
 * [GetPocket.com][3] - using [erlpocket][4] library
 * Youtube Watch Later - (not implemented yet)
 * Vimeo Watch Later - (not implemented yet)
 
-Plugin - Getpocket
-======
+### Getpocket plugin
+
 This plugin enables you to download video content saved using [Getpocket][3] service.
 First you need to [register][5] application to allow API access and get access credentails.
 
