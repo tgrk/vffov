@@ -73,7 +73,7 @@ Plugins
 * Vimeo Watch Later - (not implemented yet)
 
 Plugin - Getpocket
-=====
+======
 This plugin enables you to download video content saved using [Getpocket][3] service.
 First you need to [register][5] application to allow API access and get access credentails.
 
