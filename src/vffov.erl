@@ -14,6 +14,7 @@
 
          status/0,
          queue/0,
+         set_download_mode/1,
 
          start/0,
          stop/0
@@ -79,6 +80,13 @@ queue() ->
           (_) ->
               false
       end, supervisor:which_children(vffov_sup)).
+
+set_download_mode(parallel) ->
+    application:set_env(vffov, download_parallel, true);
+set_download_mode(queued) ->
+    application:set_env(vffov, download_parallel, false);
+set_download_mode(_Other) ->
+    vffov_common:verbose(info, "Allowed modes: parallel or queued").
 
 start() ->
     [application:start(A) || A <- deps()],
