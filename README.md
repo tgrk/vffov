@@ -72,7 +72,37 @@ Plugins
 * Youtube Watch Later - (not implemented yet)
 * Vimeo Watch Later - (not implemented yet)
 
+Plugin - Getpocket
+=====
+This plugin enables you to download video content saved using [Getpocket][3] service.
+First you need to [register][5] application to allow API access and get access credentails.
+
+After application is sucessfully registered copy sample configuration `priv/getpocket.term.template` to
+`priv/getpocket.term` and fill out consumer key:
+```erlang
+[{code,""},
+ {consumer_key,"your own cosumer key"},
+ {access_token,""}].
+```
+
+You also need to enable plugin in `ebin/vffov.app`:
+```erlang
+{enable_getpocket, true}
+```
+
+Download all videos:
+```erlang
+vffov:download_pocket([{contentType, video}]).
+```
+
+Download 5 last items with youtube tag:
+```erlang
+vffov:download_pocket([{tag, youtube},{offset, 0}, {count, 5}]).
+```
+
+
 [1]: https://github.com/rebar/rebar
 [2]: http://rg3.github.io/youtube-dl/
 [3]: http://getpocket.com
 [4]: https://github.com/tgrk/erlpocket
+[5]: http://getpocket.com/developer/apps/new
