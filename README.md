@@ -11,6 +11,14 @@ System dependencies (OS-level, libraries, binaries):
 * Erlang (>= R15)
 * [Rebar][1]
 * [youtube-dl][2]
+* 
+
+## Fetch dependencies and compile
+
+Project depends on [jiffy][3] library for JSON parsing.
+```
+$ rebar get-deps compile
+```
 
 ##Configuration
 There are multiple configration options that you can change here - `ebin/vffov.app`:
