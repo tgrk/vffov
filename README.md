@@ -91,12 +91,12 @@ You also need to enable plugin in `ebin/vffov.app`:
 
 Download all videos:
 ```erlang
-vffov:download_pocket([{contentType, video}]).
+8> vffov:download_pocket([{contentType, video}]).
 ```
 
 Download 5 last items with youtube tag:
 ```erlang
-vffov:download_pocket([{tag, youtube},{offset, 0}, {count, 5}]).
+9> vffov:download_pocket([{tag, youtube},{offset, 0}, {count, 5}]).
 ```
 
 
