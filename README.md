@@ -14,14 +14,15 @@ System dependencies (OS-level, libraries, binaries):
 
 ##Configuration
 There are multiple configration options that you can change here - `ebin/vffov.app`:
-Option            | Values  | Description
-------------------|---------|------------------------------------------
-download_parallel | boolean | Parallel vs queued download mode
-enable_logging    | boolean | Logging into log file (`log/`)
-download_dir      | string  | Where to move files after downloading
-downloader_path   | strin   | Location of youtube-dl program
-downloader_params | string  | Custom youtube-dl arguments
-enable_getpocket  | boolean | Enable Getpocket plugin
+
+| Option            | Values  | Description                                |
+|------------------ | ------- | ------------------------------------------ |
+| download_parallel | boolean | Parallel vs queued download mode           |
+| enable_logging    | boolean | Logging into log file (`log/`)             |
+| download_dir      | string  | Where to move files after downloading      |
+| downloader_path   | strin   | Location of youtube-dl program             |
+| downloader_params | string  | Custom youtube-dl arguments                |
+| enable_getpocket  | boolean | Enable Getpocket plugin                    |
 
 ##Usage
 
