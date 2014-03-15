@@ -49,12 +49,15 @@ list(Options) ->
     {ConsumerKey, AccessToken} = get_credentials(),
     case erlpocket:retrieve(ConsumerKey, AccessToken, Options) of
         {ok, _, Result}    ->
-            {[{<<"status">>,1},
-              {<<"complete">>,1},
-              {<<"list">>, {Items}}, _]} = Result,
-            case Items of
-                [] -> empty;
-                Items ->
+            case Result of
+                {[{<<"status">>,2},
+                  {<<"complete">>,1},
+                  {<<"list">>,[]},
+                  {<<"since">>, _}]} ->
+                    empty;
+                {[{<<"status">>,1},
+                  {<<"complete">>,1},
+                  {<<"list">>, {Items}}, _]} ->
                     lists:filtermap(
                       fun({Id, {Item}}) ->
                               %% download only youtube based videos
