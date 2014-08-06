@@ -11,7 +11,7 @@ System dependencies (OS-level, libraries, binaries):
 * Erlang (>= R15)
 * [Rebar][1]
 * [youtube-dl][2]
-* 
+*
 
 ## Fetch dependencies and compile
 
@@ -27,6 +27,8 @@ There are multiple configration options that you can change here - `ebin/vffov.a
 | :---------------- | :------ | :----------------------------------------- |
 | download_parallel | boolean | Parallel vs queued download mode           |
 | enable_logging    | boolean | Logging into log file (`log/`)             |
+| enable_api        | boolean | Enable REST API                            |
+| api_port          | integer | REST API endpoint port (default 8081)      |
 | download_dir      | string  | Where to move files after downloading      |
 | downloader_path   | string  | Location of youtube-dl program             |
 | downloader_params | string  | Custom youtube-dl arguments                |
@@ -119,6 +121,19 @@ Download 5 last items with youtube tag:
 9> vffov:download_pocket([{tag, youtube},{offset, 0}, {count, 5}]).
 ```
 
+##REST API
+
+API must be enabled in configuration file. Default API endpoint is `http://localhost:8081/` (port is configurable).
+
+Operation          | HTTP Verb | Url
+-------------------|-----------|---------------------------------
+Available methods  | OPTIONS   | /
+Get current status | GET       | /
+Get plugins        | GET       | /plugins
+Get queue          | GET       | /queue
+Download url       | POST      | /download + (url=http://foobar arg)
+
+There is a simple CURL client `bin/download.sh' that takes an Url as an argument.
 
 [1]: https://github.com/rebar/rebar
 [2]: http://rg3.github.io/youtube-dl/

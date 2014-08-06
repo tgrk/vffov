@@ -69,26 +69,24 @@ statman_elli() ->
      permanent, 5000, worker, []}.
 
 elli() ->
+    Opts = [{callback, elli_middleware},
+            {callback_args, [{mods, get_elli_mods()}]},
+            {port, application:get_env(vffov, api_port, 8081)}
+           ],
+    {elli, {elli, start_link, [Opts]}, permanent, 5000, worker, []}.
+
+get_elli_mods() ->
     {ok, Cwd} = file:get_cwd(),
     StatmanConfig = [{name, collect_statman_elli},
                      {docroot, filename:join(
                                  [Cwd, "deps/statman_elli/priv/docroot"]
                                 )
-                     }
-                    ],
+                     }],
+    DefaultMods = [{statman_elli, StatmanConfig},
+                   {elli_access_log, []}],
 
-    Middleware = [{mods, [
-                          {statman_elli, StatmanConfig},
-                          {elli_access_log, []},
-                          {collect_options, []},
-                          {collect_health_check, []},
-                          {collect_crossdomain, []},
-                          {collect_api, []}
-                         ]}
-                 ],
-
-    Opts = [{callback, elli_middleware},
-            {callback_args, Middleware},
-            {port, 8080}
-           ],
-    {elli, {elli, start_link, [Opts]}, permanent, 5000, worker, []}.
+    ApiMod = case application:get_env(vffov, enable_api) of
+                 {ok, true}  -> [{vffov_api, []}];
+                 {ok, false} -> []
+             end,
+    [DefaultMods | ApiMod].
