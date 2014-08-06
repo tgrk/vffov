@@ -72,6 +72,7 @@ sanitize_url(Url) ->
             end
     end.
 
+%%FIXME: when using queue (1 or more downloads?) not all files are moved!!!
 move_to_download_dir(Url) ->
     [_ | Id] = string:tokens(Url, "v="),
     Files = lists:filter(

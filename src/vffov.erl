@@ -72,6 +72,7 @@ status() ->
               false
       end, supervisor:which_children(vffov_sup)).
 
+%%FIXME: why there is more than one queued_worker each with its own queue?!
 queue() ->
     lists:filtermap(
       fun ({_Id, Pid, worker, [vffov_queued_worker]}) ->
@@ -118,13 +119,10 @@ load_plugins() ->
     ok.
 
 download_1(Input) ->
+    %% handle input form console or file
     case vffov_common:is_url(Input) of
-        true  ->
-            %% handle input form console
-            handle_download([Input]);
-        false ->
-            %% handle file input
-            handle_download(parse(Input))
+        true  -> handle_download([Input]);
+        false -> handle_download(parse(Input))
     end.
 
 process_url_list(L) when is_list(L) ->
