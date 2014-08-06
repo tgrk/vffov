@@ -133,7 +133,7 @@ Get plugins        | GET       | /plugins
 Get queue          | GET       | /queue
 Download url       | POST      | /download + (url=http://foobar arg)
 
-There is a simple CURL client `bin/download.sh' that takes an Url as an argument.
+There is a simple CURL client `bin/download.sh` that takes an Url as an argument.
 
 [1]: https://github.com/rebar/rebar
 [2]: http://rg3.github.io/youtube-dl/
