@@ -19,15 +19,38 @@
 %%=============================================================================
 %% API functions
 %%=============================================================================
+%%TODO: type spec
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_worker(Worker, Url) ->
+start_worker(vffov_parallel_worker = Worker, Url) ->
     case supervisor:start_child(?MODULE, get_child(Worker, Url)) of
         {error, Reason} ->
             throw({unable_to_start_worker, Worker, Reason});
         {ok, Pid} ->
             Pid
+    end;
+start_worker(vffov_queued_worker = Worker, Url) ->
+    %%TODO: make it nicer
+    WorkerPids = lists:filtermap(
+                   fun ({_Id, _Pid, worker, [vffov_parallel_worker]}) ->
+                           false;
+                       ({_Id, Pid, worker, [vffov_queued_worker]}) ->
+                           {true, Pid};
+                       (_) ->
+                           false
+                   end, supervisor:which_children(vffov_sup)),
+    case WorkerPids of
+        [WorkerPid] ->
+            gen_server:cast(WorkerPid, {enqueue, Url}),
+            WorkerPid;
+        [] ->
+            case supervisor:start_child(?MODULE, get_child(Worker, Url)) of
+                {error, Reason} ->
+                    throw({unable_to_start_worker, Worker, Reason});
+                {ok, Pid} ->
+                    Pid
+            end
     end.
 
 get_stats() ->
@@ -43,21 +66,29 @@ init([]) ->
     ChildSpecs = [
                   statman_aggregator(),
                   statman_elli(),
-                  elli()
+                  elli(),
+                  notifications_server()
                  ],
-    {ok, {{one_for_one, 5, 10}, ChildSpecs}}.
+    {ok, {{one_for_one, 5, 10}, lists:flatten(ChildSpecs)}}.
 
 %%%============================================================================
 %%% Internal functions
 %%%============================================================================
+get_child(vffov_queued_worker = Worker, Arg) ->
+    {Worker, {Worker, start_link, [Arg]}, temporary, brutal_kill,
+     worker, [Worker]};
 get_child(Worker, Arg) ->
-    Name = get_worker_name(Worker),
+    {_, _, Mics} = erlang:now(),
+    Name = list_to_atom(atom_to_list(Worker) ++ "_" ++ integer_to_list(Mics)),
     {Name, {Worker, start_link, [Name, Arg]}, temporary, brutal_kill,
      worker, [Worker]}.
 
-get_worker_name(Worker) ->
-    {_, _, Mics} = erlang:now(),
-    list_to_atom(atom_to_list(Worker) ++ "_" ++ integer_to_list(Mics)).
+notifications_server() ->
+    case is_api_enabled() of
+        true  -> {vffov_notify_server, {vffov_notify_server, start_link, []},
+                  permanent, 5000, worker, []};
+        false -> []
+    end.
 
 %% Childspecs required by statman dashboard
 statman_aggregator() ->
@@ -85,8 +116,12 @@ get_elli_mods() ->
     DefaultMods = [{statman_elli, StatmanConfig},
                    {elli_access_log, []}],
 
-    ApiMod = case application:get_env(vffov, enable_api) of
-                 {ok, true}  -> [{vffov_api, []}];
-                 {ok, false} -> []
+    ApiMod = case is_api_enabled() of
+                 true  -> [{vffov_api, []}];
+                 false -> []
              end,
-    [DefaultMods | ApiMod].
+    lists:concat([DefaultMods, ApiMod]).
+
+is_api_enabled() ->
+    {ok, Enabled} =  application:get_env(vffov, enable_api),
+    Enabled.

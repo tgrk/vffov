@@ -11,8 +11,9 @@
 
 %% API
 -export([
-         start_link/2,
+         start_link/1,
          stop/0,
+         enqueue/1,
          get_url/0,
          get_queue/0
         ]).
@@ -26,11 +27,15 @@
 %%%============================================================================
 %%% API
 %%%============================================================================
-start_link(Name, Queue) ->
-    gen_server:start_link({local, Name}, ?MODULE, [Queue], []).
+%%TODO: type spec
+start_link(Queue) ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Queue], []).
 
 stop() ->
     gen_server:cast(?MODULE, stop).
+
+enqueue(Url) ->
+    gen_server:cast(?MODULE, {enqueue, Url}).
 
 get_url() ->
     gen_server:call(?MODULE, current_url).
@@ -53,27 +58,30 @@ handle_call(current_url, _From, State) ->
 handle_call(current_queue, _From, State) ->
     {reply, {ok, State#state.queue}, State};
 handle_call(Call, From, State) ->
-    vffov_common:verbose(error, "Unmatched call ~p from ~p", [Call, From]),
+    vffov_utils:verbose(error, "Unmatched call ~p from ~p", [Call, From]),
     {reply, invalid_call, State}.
 
+handle_cast({enqueue, Url}, #state{queue = Queue} = State) ->
+    vffov_utils:verbose(info, "Add ~s to queue", [Url]),
+    {noreply, State#state{queue = queue:in(Url, Queue)}};
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(Cast, State) ->
-    vffov_common:verbose(error, "Unmatched cast ~p", [Cast]),
+    vffov_utils:verbose(error, "Unmatched cast ~p", [Cast]),
     {noreply, State}.
 
 handle_info(timeout, State) ->
     do_download(State);
 handle_info({_Port, {data, Data}}, #state{current_url = Url} = State) ->
-    vffov_common:verbose(info, "~s - ~s", [Url, Data]),
+    vffov_utils:verbose(info, "~s - ~s", [Url, Data]),
     {noreply, State};
 handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
-    vffov_common:verbose(info, "Downloading stopped ~s", [Url]),
+    vffov_utils:verbose(info, "Downloading stopped ~s", [Url]),
     do_download(State);
 handle_info({_Port, {exit_status, 0}}, #state{id = Id, current_url = Url}
             = State) ->
-    vffov_common:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
-    vffov_common:move_to_download_dir(Url),
+    vffov_utils:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
+    vffov_utils:move_to_download_dir(Url),
 
     %% mark as downloaded (getpocket)
     case Id =/= undefined of
@@ -86,7 +94,7 @@ handle_info({'EXIT', _Port, normal}, #state{queue = []} = State) ->
 handle_info({'EXIT', _Port, normal}, State) ->
     do_download(State);
 handle_info(Info, State) ->
-    vffov_common:verbose(error, "Unmatched info ~p, ~p", [Info, State]),
+    vffov_utils:verbose(error, "Unmatched info ~p, ~p", [Info, State]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -101,14 +109,14 @@ code_change(_OldVsn, State, _Extra) ->
 do_download(#state{queue = Queue} = State) ->
    case queue:out(Queue) of
       {{value, {Id, Url}}, Queue2} ->
-           vffov_common:verbose(info, "Downloading video from url ~s", [Url]),
-           Port = vffov_common:open_downloader_port(Url),
+           vffov_utils:verbose(info, "Downloading video from url ~s", [Url]),
+           Port = vffov_utils:open_downloader_port(Url),
            {noreply,
             State#state{port = Port, queue = Queue2, id = Id, current_url = Url}
            };
        {{value, Url}, Queue2} ->
-           vffov_common:verbose(info, "Downloading video from url ~s", [Url]),
-           Port = vffov_common:open_downloader_port(Url),
+           vffov_utils:verbose(info, "Downloading video from url ~s", [Url]),
+           Port = vffov_utils:open_downloader_port(Url),
            {noreply,
             State#state{port = Port, queue = Queue2, current_url = Url}
            };
