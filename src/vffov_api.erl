@@ -29,8 +29,8 @@ handle(Req, _Args) ->
         end
     catch
         _Class:Reason ->
-            vffov_common:verbose(error, "Unable to handle API request - ~p!",
-                                 [Reason]),
+            vffov_utils:verbose(error, "Unable to handle API request - ~p!",
+                                [Reason]),
             return(500, <<"Internal error">>)
     end.
 
@@ -40,12 +40,16 @@ handle_event(_, _, _) ->
 %%%============================================================================
 %%% REST API
 %%%============================================================================
+get([<<"stream">>], Req) ->
+    ok = vffov_notify_server:add_client(elli_request:chunk_ref(Req)),
+    {chunk, [{<<"Content-Type">>, <<"text/event-stream">>}]};
 get([<<"queue">>], _Req) ->
     case vffov:queue() of
+        []        -> return_json({[]});
         [{[],[]}] -> return_json({[]});
         Queue     ->
             L = queue:to_list(Queue),
-            io:format("debug: queue=~p~n", [L]),
+            io:format("debug: queue_list=~p~n", [L]),
             return_json(<<"TODO: display queue">>)
     end;
 get([], _Req) ->

@@ -23,40 +23,41 @@
 %%%=============================================================================
 %%% API
 %%%=============================================================================
+%%TOD: type specs
 download() ->
-    download(vffov_common:priv_dir(vffov) ++ "playlist.txt").
+    download(vffov_utils:priv_dir(vffov) ++ "playlist.txt").
 
 download(L) when is_list(L) ->
-    case filelib:is_regular(vffov_common:get_downloader()) of
+    case filelib:is_regular(vffov_utils:get_downloader()) of
         true  ->
             case filelib:is_regular(L) of
                 true  -> download_1(L);
                 false -> process_url_list(L)
             end;
         false ->
-            vffov_common:verbose(error, "Downloader not found! Please check "
-                                 "configuration.", [])
+            vffov_utils:verbose(error, "Downloader not found! Please check "
+                                "configuration.", [])
     end.
 
 download_pocket(Opts) ->
     case vffov_getpocket:auth() of
         {ok, {request_url, Url}} ->
-            vffov_common:verbose(info, "Open following ~p in your browser and"
-                                 " run again.~n", [Url]);
+            vffov_utils:verbose(info, "Open following ~p in your browser and"
+                                " run again.~n", [Url]);
         ok ->
             case vffov_getpocket:list(Opts) of
                 empty ->
-                    vffov_common:verbose(info, "No matching items.~n", []);
+                    vffov_utils:verbose(info, "No matching items.~n", []);
                 {error, Reason} ->
-                    vffov_common:verbose(error,
-                                         "Unable to get items from getpocket "
-                                         "service! Error ~p", [Reason]);
+                    vffov_utils:verbose(error,
+                                        "Unable to get items from getpocket "
+                                        "service! Error ~p", [Reason]);
                 List  -> handle_download(List)
             end;
         error ->
-            vffov_common:verbose(error,
-                                 "Unable to reqeust authentification code! "
-                                 "Check you consumer key!", [])
+            vffov_utils:verbose(error,
+                                "Unable to reqeust authentification code! "
+                                "Check you consumer key!", [])
     end.
 
 
@@ -87,7 +88,7 @@ set_download_mode(parallel) ->
 set_download_mode(queued) ->
     application:set_env(vffov, download_parallel, false);
 set_download_mode(_Other) ->
-    vffov_common:verbose(info, "Allowed modes: parallel or queued").
+    vffov_utils:verbose(info, "Allowed modes: parallel or queued", []).
 
 start() ->
     [application:start(A) || A <- deps()],
@@ -120,19 +121,19 @@ load_plugins() ->
 
 download_1(Input) ->
     %% handle input form console or file
-    case vffov_common:is_url(Input) of
+    case vffov_utils:is_url(Input) of
         true  -> handle_download([Input]);
         false -> handle_download(parse(Input))
     end.
 
 process_url_list(L) when is_list(L) ->
-    case length(L) > 0 andalso vffov_common:is_url(hd(L)) of
+    case length(L) > 0 andalso vffov_utils:is_url(hd(L)) of
         true  -> handle_download(L);
         false -> handle_download([L])
     end.
 
 handle_download(List) ->
-    Sanitized = vffov_common:sanitize_urls(List),
+    Sanitized = vffov_utils:sanitize_urls(List),
     case application:get_env(vffov, download_parallel, false) of
         true  -> lists:foreach(fun download_file/1, Sanitized);
         false -> queue_downloads(Sanitized)
@@ -156,9 +157,9 @@ parse(Path) ->
         end
     catch
         _:Reason ->
-            vffov_common:verbose(error,
-                                 "Unable to load playlist file! Error ~p",
-                                 [Reason])
+            vffov_utils:verbose(error,
+                                "Unable to load playlist file! Error ~p",
+                                [Reason])
     end.
 
 parse_1(json, Bin) ->
