@@ -6,6 +6,7 @@
 %%% Created : 5 Mar 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
 -module(vffov).
+-include("vffov.hrl").
 
 %% API
 -export([download/0,
@@ -23,10 +24,11 @@
 %%%=============================================================================
 %%% API
 %%%=============================================================================
-%%TOD: type specs
+-spec download() -> any().
 download() ->
     download(vffov_utils:priv_dir(vffov) ++ "playlist.txt").
 
+-spec download(url()) -> any().
 download(L) when is_list(L) ->
     case filelib:is_regular(vffov_utils:get_downloader()) of
         true  ->
@@ -39,6 +41,7 @@ download(L) when is_list(L) ->
                                 "configuration.", [])
     end.
 
+-spec download_pocket([{atom(), any()}]) -> any().
 download_pocket(Opts) ->
     case vffov_getpocket:auth() of
         {ok, {request_url, Url}} ->
@@ -60,7 +63,7 @@ download_pocket(Opts) ->
                                 "Check you consumer key!", [])
     end.
 
-
+-spec status() -> [any()].
 status() ->
     lists:filtermap(
       fun ({_Id, Pid, worker, [vffov_parallel_worker]}) ->
@@ -74,6 +77,7 @@ status() ->
       end, supervisor:which_children(vffov_sup)).
 
 %%FIXME: why there is more than one queued_worker each with its own queue?!
+-spec queue() -> [any()].
 queue() ->
     lists:filtermap(
       fun ({_Id, Pid, worker, [vffov_queued_worker]}) ->
@@ -83,6 +87,7 @@ queue() ->
               false
       end, supervisor:which_children(vffov_sup)).
 
+-spec set_download_mode(paralel | queued) -> any().
 set_download_mode(parallel) ->
     application:set_env(vffov, download_parallel, true);
 set_download_mode(queued) ->
@@ -90,16 +95,19 @@ set_download_mode(queued) ->
 set_download_mode(_Other) ->
     vffov_utils:verbose(info, "Allowed modes: parallel or queued", []).
 
+-spec start() -> ok.
 start() ->
     [application:start(A) || A <- deps()],
+
     application:load(vffov),
-
     load_plugins(),
+    application:start(vffov),
+    ok.
 
-    application:start(vffov).
-
+-spec stop() -> ok.
 stop() ->
-    [application:stop(A) || A <- deps() ++ [vffov]].
+    [application:stop(A) || A <- deps() ++ [vffov]],
+    ok.
 
 %%%=============================================================================
 %%% Internal functionality

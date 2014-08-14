@@ -6,7 +6,7 @@
 %%% Created : 29 Apr 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
 -module(vffov_queued_worker).
-
+-include("vffov.hrl").
 -behaviour(gen_server).
 
 %% API
@@ -27,19 +27,23 @@
 %%%============================================================================
 %%% API
 %%%============================================================================
-%%TODO: type spec
+-spec start_link(list()) -> {ok, pid()} | ignore | {error, any()}.
 start_link(Queue) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Queue], []).
 
+-spec stop() -> ok.
 stop() ->
     gen_server:cast(?MODULE, stop).
 
+-spec enqueue(url()) -> ok.
 enqueue(Url) ->
     gen_server:cast(?MODULE, {enqueue, Url}).
 
+-spec get_url() -> url().
 get_url() ->
     gen_server:call(?MODULE, current_url).
 
+-spec get_queue() -> queue:queue().
 get_queue() ->
     gen_server:call(?MODULE, current_queue).
 

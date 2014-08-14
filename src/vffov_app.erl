@@ -18,7 +18,7 @@
 %%=============================================================================
 %% Application callbacks
 %%=============================================================================
-%%TODO: type spec
+-spec start(_,_) -> {ok, pid()} | {ok, pid(), any()} | {error, any()}.
 start(_StartType, _StartArgs) ->
     case vffov_sup:start_link() of
         {ok, Pid} ->
@@ -35,21 +35,23 @@ start(_StartType, _StartArgs) ->
             {error, Reason}
     end.
 
+-spec stop(any()) -> 'ok'.
 stop(_State) ->
     ok.
 
+-spec process_sizes() -> [any()].
 process_sizes() ->
     %%TODO: limit only to vffov_workers
     Pids = lists:map(fun ({_, Pid, _, _}) -> Pid end,
                      supervisor:which_children(vffov_sup)),
-    lists:zf(fun (P) ->
-                     case total_memory(P) of
-                         undefined ->
-                             false;
-                         Bytes ->
-                             {true, {memory, Bytes}}
-                     end
-             end, Pids).
+    lists:filtermap(fun (P) ->
+                            case total_memory(P) of
+                                undefined ->
+                                    false;
+                                Bytes ->
+                                    {true, {memory, Bytes}}
+                            end
+                    end, Pids).
 
 %%=============================================================================
 %% Internal functionality

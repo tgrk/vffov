@@ -13,13 +13,14 @@
 %%%============================================================================
 %%% API
 %%%============================================================================
-%%TODO: type specs
+-spec load() -> ok.
 load() ->
     application:ensure_all_started(ssl),
     application:ensure_all_started(inets),
     application:ensure_all_started(erlpocket),
     application:set_env(erlpocket, verbose, false).
 
+-spec auth() ->  ok | {ok, {request_url, string()}} | error.
 auth() ->
     [Keys] = vffov_utils:read_pocket_credentials(),
     ConsumerKey = proplists:get_value(consumer_key, Keys),
@@ -48,6 +49,8 @@ auth() ->
             ok
     end.
 
+-spec list([{atom(), any()}]) ->
+                  [any()] | empty | {error, {unable_to_list, any()}}.
 list(Options) ->
     {ConsumerKey, AccessToken} = get_credentials(),
     case erlpocket:retrieve(ConsumerKey, AccessToken, Options) of
@@ -76,6 +79,7 @@ list(Options) ->
             {error, {unable_to_list, Reason}}
     end.
 
+-spec mark_done(string()) -> boolean().
 mark_done(ItemId) ->
     {ConsumerKey, AccessToken} = get_credentials(),
     vffov_utils:verbose(info, "Marking video with id=~p as done.", [ItemId]),

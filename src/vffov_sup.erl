@@ -6,7 +6,7 @@
 %%% Created : 5 Mar 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
 -module(vffov_sup).
-
+-include("vffov.hrl").
 -behaviour(supervisor).
 
 %% API
@@ -19,10 +19,11 @@
 %%=============================================================================
 %% API functions
 %%=============================================================================
-%%TODO: type spec
+-spec start_link() -> {ok, pid()} | ignore | {error, any()}.
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+-spec start_worker(workers(), url()) -> pid() | no_return().
 start_worker(vffov_parallel_worker = Worker, Url) ->
     case supervisor:start_child(?MODULE, get_child(Worker, Url)) of
         {error, Reason} ->
@@ -31,18 +32,9 @@ start_worker(vffov_parallel_worker = Worker, Url) ->
             Pid
     end;
 start_worker(vffov_queued_worker = Worker, Url) ->
-    %%TODO: make it nicer
-    WorkerPids = lists:filtermap(
-                   fun ({_Id, _Pid, worker, [vffov_parallel_worker]}) ->
-                           false;
-                       ({_Id, Pid, worker, [vffov_queued_worker]}) ->
-                           {true, Pid};
-                       (_) ->
-                           false
-                   end, supervisor:which_children(vffov_sup)),
-    case WorkerPids of
+    case get_queue_worker_pids() of
         [WorkerPid] ->
-            gen_server:cast(WorkerPid, {enqueue, Url}),
+            ok = gen_server:cast(WorkerPid, {enqueue, Url}),
             WorkerPid;
         [] ->
             case supervisor:start_child(?MODULE, get_child(Worker, Url)) of
@@ -53,11 +45,10 @@ start_worker(vffov_queued_worker = Worker, Url) ->
             end
     end.
 
+-spec get_stats() -> [{{vffov, workers}, integer()}].
 get_stats() ->
     StatsPL = supervisor:count_children(?MODULE),
-    [
-     {{vffov, workers}, proplists:get_value(workers, StatsPL)}
-    ].
+    [{{vffov, workers}, proplists:get_value(workers, StatsPL, 0)}].
 
 %%=============================================================================
 %% Supervisor callbacks
@@ -89,6 +80,16 @@ notifications_server() ->
                   permanent, 5000, worker, []};
         false -> []
     end.
+
+get_queue_worker_pids() ->
+    lists:filtermap(
+      fun ({_Id, _Pid, worker, [vffov_parallel_worker]}) ->
+              false;
+          ({_Id, Pid, worker, [vffov_queued_worker]}) ->
+              {true, Pid};
+          (_) ->
+              false
+      end, supervisor:which_children(vffov_sup)).
 
 %% Childspecs required by statman dashboard
 statman_aggregator() ->

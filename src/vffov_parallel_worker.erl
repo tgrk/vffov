@@ -6,7 +6,7 @@
 %%% Created : 5 Mar 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
 -module(vffov_parallel_worker).
-
+-include("vffov.hrl").
 -behaviour(gen_server).
 
 %% API
@@ -25,13 +25,15 @@
 %%%============================================================================
 %%% API
 %%%============================================================================
-%%TODO: type spec
+-spec start_link(atom(), url()) -> {ok, pid()} | ignore | {error, any()}.
 start_link(Name, Url) ->
     gen_server:start_link({local, Name}, ?MODULE, [Url], []).
 
+-spec stop() -> ok.
 stop() ->
     gen_server:cast(?MODULE, stop).
 
+-spec get_url() -> url().
 get_url() ->
     gen_server:call(?MODULE, current_url).
 

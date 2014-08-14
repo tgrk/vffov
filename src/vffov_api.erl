@@ -8,8 +8,6 @@
 -module(vffov_api).
 -behaviour(elli_handler).
 
-%%TODO: notification using EventSource
-
 %% API
 -export([handle/2, handle_event/3]).
 
