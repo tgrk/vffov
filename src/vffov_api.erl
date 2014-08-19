@@ -46,9 +46,10 @@ get([<<"queue">>], _Req) ->
         []        -> return_json({[]});
         [{[],[]}] -> return_json({[]});
         Queue     ->
-            L = queue:to_list(Queue),
-            io:format("debug: queue_list=~p~n", [L]),
-            return_json(<<"TODO: display queue">>)
+            JsonStruct = lists:map(fun ([Item]) ->
+                                           {[{url, list_to_binary(Item)}]}
+                                   end, queue:to_list(Queue)),
+            return_json(JsonStruct)
     end;
 get([], _Req) ->
     Payload = lists:map(fun ({K,V}) ->
@@ -63,13 +64,28 @@ get([<<"plugins">>], _Req) ->
 get(_Path, _Req) ->
     return_error(not_found).
 
+%%TODO: plugins api?
 post([<<"download">>], Req) ->
-    Args = elli_request:body_qs(Req),
-    case proplists:get_value(<<"url">>, Args, <<>>) of
-        <<>> -> return_error(bad_request);
-        Url  ->
-            vffov:download(binary_to_list(Url)),
-            return_json(<<"downloading">>)
+    try
+        Args = elli_request:body_qs(Req),
+        case proplists:is_defined(<<"url">>, Args) of
+            true ->
+                case proplists:get_value(<<"url">>, Args, <<>>) of
+                    <<>> ->
+                        return_error(bad_request);
+                    Url  ->
+                        vffov:download(binary_to_list(Url)),
+                        return_json(<<"ok">>)
+                end;
+            false ->
+                vffov:download(binary_to_list(elli_request:body(Req))),
+                return_json(<<"ok">>)
+        end
+    catch
+    _:Reason ->
+            vffov_utils:verbose(error, "Unable to process API request: ~p",
+                                [Reason]),
+            return_error(bad_request)
     end;
 post(_Path, _Req) ->
     return_error(not_found).
