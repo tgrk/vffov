@@ -76,16 +76,19 @@ status() ->
               false
       end, supervisor:which_children(vffov_sup)).
 
-%%FIXME: why there is more than one queued_worker each with its own queue?!
--spec queue() -> [any()].
+-spec queue() -> queue:queue().
 queue() ->
-    lists:filtermap(
-      fun ({_Id, Pid, worker, [vffov_queued_worker]}) ->
-              {ok, Queue} = gen_server:call(Pid, current_queue),
-              {true, Queue};
-          (_) ->
-              false
-      end, supervisor:which_children(vffov_sup)).
+    Filtered = lists:filtermap(
+                 fun ({_Id, Pid, worker, [vffov_queued_worker]}) ->
+                         {ok, Queue} = gen_server:call(Pid, current_queue),
+                         {true, Queue};
+                     (_) ->
+                         false
+                 end, supervisor:which_children(vffov_sup)),
+    case Filtered =:= [] of
+        true  -> queue:new();
+        false -> hd(Filtered)
+    end.
 
 -spec set_download_mode(paralel | queued) -> any().
 set_download_mode(parallel) ->
