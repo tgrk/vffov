@@ -57,14 +57,13 @@ get([], _Req) ->
                         end, vffov:status()),
     return_json({Payload});
 get([<<"plugins">>], _Req) ->
-    {ok, Getpocket} = application:get_env(vffov, enable_getpocket),
-    {ok, Youtube} = application:get_env(vffov, enable_youtube),
-    return_json({[{<<"getpocket">>, Getpocket},
-                  {<<"youtube">>,   Youtube}]});
+    return_json({vffov:plugins()});
 get(_Path, _Req) ->
     return_error(not_found).
 
-%%TODO: plugins api?
+%%TODO: plugins api? handle plugin specific json to start downlod
+post([<<"download">>, <<"plugins">>, PluginName], Req) ->
+    return_json(<<"not_implemented">>);
 post([<<"download">>], Req) ->
     try
         Args = elli_request:body_qs(Req),

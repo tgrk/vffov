@@ -15,6 +15,7 @@
 
          status/0,
          queue/0,
+         plugins/0,
          set_download_mode/1,
 
          start/0,
@@ -97,6 +98,13 @@ set_download_mode(queued) ->
     application:set_env(vffov, download_parallel, false);
 set_download_mode(_Other) ->
     vffov_utils:verbose(info, "Allowed modes: parallel or queued", []).
+
+-spec plugins() -> list({atom(), boolean()}).
+plugins() ->
+    {ok, Getpocket} = application:get_env(vffov, enable_getpocket),
+    {ok, Youtube} = application:get_env(vffov, enable_youtube),
+    [{getpocket, Getpocket},
+     {youtube,   Youtube}].
 
 -spec start() -> ok.
 start() ->
