@@ -3,7 +3,7 @@
 %%% @doc
 %%% Common code shared between all workers
 %%% @end
-%%% Created : 29 Aor 2013 by tgrk <martin@wiso.cz>
+%%% Created : 29 Apr 2013 by tgrk <martin@wiso.cz>
 %%%-----------------------------------------------------------------------------
 -module(vffov_utils).
 
@@ -19,7 +19,9 @@
          open_downloader_port/1,
          close_downloader_port/1,
          read_pocket_credentials/0,
-         write_pocket_credentials/3
+         write_pocket_credentials/3,
+         process_sizes/0,
+         total_memory/1
         ]).
 
 %%=============================================================================
@@ -91,16 +93,25 @@ sanitize_url(Url) ->
 %%FIXME: when using queue (1 or more downloads?) not all files are moved!!!
 -spec move_to_download_dir(string()) -> ok.
 move_to_download_dir(Url) ->
-    [_ | Id] = string:tokens(Url, "v="),
+    io:format("debug: url=~s~n", [Url]),
+    [R | Id] = string:tokens(Url, "v="),
+    io:format("debug: r=~p, id=~p~n", [R, Id]),
     Files = lists:filter(
                fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
                filelib:wildcard("*")
               ),
+    io:format("debug: files=~p~n", [Files]),
     TargetDir = application:get_env(vffov, download_dir, ""),
+    io:format("debug: target_dir=~s~n", [TargetDir]),
     lists:foreach(
-      fun(File) -> file:rename(File, filename:join(TargetDir, File)) end,
+      fun(File) ->
+              io:format("debug: move ~s -> ~s~n",
+                        [File, filename:join(TargetDir, File)]),
+              file:rename(File, filename:join(TargetDir, File))
+      end,
       Files
-     ).
+     ),
+    ok.
 
 -spec open_downloader_port(string()) -> port().
 open_downloader_port(Url) ->
@@ -132,8 +143,39 @@ read_pocket_credentials() ->
         {ok, Keys} ->
             Keys;
         Other ->
-            io:format("error - ~p~n", [Other]),
+            vffov_utils:verbose(error, "Unable to read getpocket "
+                                "credentials - ~p!", [Other]),
             throw("Unable to read stored credentials!")
+    end.
+
+-spec process_sizes() -> list({memory, integer()}).
+process_sizes() ->
+    Pids = lists:filtermap(
+             fun ({Id, Pid, _, _}) when Id =:= vffov_queued_worker ->
+                     {true, Pid};
+                 ({_, Pid, _, Modules}) ->
+                     case lists:member(vffov_parallel_worker, Modules) of
+                         true -> {true, Pid};
+                         false -> false
+                     end;
+                 (_) ->
+                     false
+             end,
+             supervisor:which_children(vffov_sup)),
+    lists:filtermap(fun (P) ->
+                            case total_memory(P) of
+                                undefined -> false;
+                                Bytes     -> {true, {memory, Bytes}}
+                            end
+                    end, Pids).
+
+-spec total_memory(pid()) -> integer() | undefined.
+total_memory(Pid) ->
+    case {process_info(Pid, memory), process_info(Pid, binary)} of
+        {A, B} when A =:= undefined orelse B =:= undefined ->
+            undefined;
+        {{memory, Memory}, {binary, B}} ->
+            Memory + lists:sum([Size || {_, Size, _} <- B])
     end.
 
 %%=============================================================================

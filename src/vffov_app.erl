@@ -9,9 +9,6 @@
 
 -behaviour(application).
 
-%% API
--export([process_sizes/0]).
-
 %% Application callbacks
 -export([start/2, stop/1]).
 
@@ -27,7 +24,7 @@ start(_StartType, _StartArgs) ->
                         fun statman_vm_metrics:get_gauges/0),
             {ok, _} = statman_poller_sup:add_counter(fun vffov_sup:get_stats/0),
             {ok, _} = statman_poller_sup:add_histogram(
-                        fun ?MODULE:process_sizes/0, 6000),
+                        fun vffov_utils:process_sizes/0, 6000),
             ok = statman_server:add_subscriber(statman_aggregator),
 
             {ok, Pid};
@@ -38,28 +35,3 @@ start(_StartType, _StartArgs) ->
 -spec stop(any()) -> 'ok'.
 stop(_State) ->
     ok.
-
--spec process_sizes() -> [any()].
-process_sizes() ->
-    %%TODO: limit only to vffov_workers
-    Pids = lists:map(fun ({_, Pid, _, _}) -> Pid end,
-                     supervisor:which_children(vffov_sup)),
-    lists:filtermap(fun (P) ->
-                            case total_memory(P) of
-                                undefined ->
-                                    false;
-                                Bytes ->
-                                    {true, {memory, Bytes}}
-                            end
-                    end, Pids).
-
-%%=============================================================================
-%% Internal functionality
-%%=============================================================================
-total_memory(Pid) ->
-    case {process_info(Pid, memory), process_info(Pid, binary)} of
-        {A, B} when A =:= undefined orelse B =:= undefined ->
-            undefined;
-        {{memory, Memory}, {binary, B}} ->
-            Memory + lists:sum([Size || {_, Size, _} <- B])
-    end.
