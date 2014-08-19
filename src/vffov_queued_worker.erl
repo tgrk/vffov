@@ -22,7 +22,11 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {port, queue, id = undefined, current_url = undefined}).
+-record(state, {port        :: port(),
+                queue       :: queue:queue({url(), string()}),
+                id          :: string(),
+                current_url :: url()
+               }).
 
 %%%============================================================================
 %%% API
@@ -82,17 +86,8 @@ handle_info({_Port, {data, Data}}, #state{current_url = Url} = State) ->
 handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
     vffov_utils:verbose(info, "Downloading stopped ~s", [Url]),
     do_download(State);
-handle_info({_Port, {exit_status, 0}}, #state{id = Id, current_url = Url}
-            = State) ->
-    vffov_utils:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
-    vffov_utils:move_to_download_dir(Url),
-
-    %% mark as downloaded (getpocket)
-    case Id =/= undefined of
-        true  -> vffov_getpocket:mark_done(Id);
-        false -> ignore
-    end,
-    do_download(State);
+handle_info({_Port, {exit_status, 0}}, State) ->
+    finish_download(State);
 handle_info({'EXIT', _Port, normal}, #state{queue = []} = State) ->
     {stop, normal, State};
 handle_info({'EXIT', _Port, normal}, State) ->
@@ -110,6 +105,20 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================
 %%% Internal functionality
 %%%============================================================================
+finish_download(#state{id = undefined, current_url = Url} = State) ->
+    vffov_utils:verbose(info, "Finished downloading ~s", [Url]),
+    vffov_utils:move_to_download_dir(Url),
+    do_download(State);
+finish_download(#state{id = Id, current_url = Url} = State) ->
+    vffov_utils:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
+    vffov_utils:move_to_download_dir(Url),
+
+    %%FIXME: handle plugins generically
+    %% mark as downloaded resource (getpocket)
+    vffov_getpocket:mark_done(Id),
+
+    do_download(State).
+
 do_download(#state{queue = Queue} = State) ->
    case queue:out(Queue) of
       {{value, {Id, Url}}, Queue2} ->
