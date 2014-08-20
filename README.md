@@ -34,7 +34,7 @@ There are multiple configration options that you can change here - `ebin/vffov.a
 | downloader_params | string  | Custom youtube-dl arguments                |
 | enable_getpocket  | boolean | Enable Getpocket plugin                    |
 
-##Usage
+##Usage from Erlang console
 
 Start application using `start.sh` script. Then start downloading using
 following call:
@@ -70,7 +70,7 @@ List current queued jobs/workers (works only if download_parallel=false}:
 7> vffov:queue().
 ```
 
-## Download list format
+## Download list formats
 
 Text format:
 ```
