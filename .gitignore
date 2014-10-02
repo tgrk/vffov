@@ -6,6 +6,7 @@ log
 *.o
 *.beam
 *.plt
+priv/playlist.txt
 priv/getpocket.term
 priv/youtube.term
 ebin/vffov.app
