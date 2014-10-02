@@ -54,7 +54,7 @@ Or add list of Urls from console:
 4> vffov:download(L).
 ```
 
-You could also use default playlist that is stored in ```priv/playlist.txt``:
+You could also use default playlist that is stored in ```priv/playlist.txt.sample`` or ```priv/playlist.json.sample```.:
 
 ```erlang
 5> vffov:download().
