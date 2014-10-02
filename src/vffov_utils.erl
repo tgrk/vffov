@@ -94,23 +94,24 @@ sanitize_url(Url) ->
 -spec move_to_download_dir(string()) -> ok.
 move_to_download_dir(Url) ->
     io:format("debug: url=~s~n", [Url]),
-    [R | Id] = string:tokens(Url, "v="),
+    [R | Id] = string:tokens(Url, "="),
     io:format("debug: r=~p, id=~p~n", [R, Id]),
     Files = lists:filter(
                fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
                filelib:wildcard("*")
               ),
-    io:format("debug: files=~p~n", [Files]),
+    io:format("debug: files=~w~n", [Files]),
     TargetDir = application:get_env(vffov, download_dir, ""),
     io:format("debug: target_dir=~s~n", [TargetDir]),
-    lists:foreach(
+    R1 = lists:map(
       fun(File) ->
-              io:format("debug: move ~s -> ~s~n",
+              io:format("debug: move ~p -> ~p~n",
                         [File, filename:join(TargetDir, File)]),
               file:rename(File, filename:join(TargetDir, File))
       end,
       Files
      ),
+    io:format("debug: results=~p~n", [R1]),
     ok.
 
 -spec open_downloader_port(string()) -> port().
