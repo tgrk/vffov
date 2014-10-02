@@ -36,7 +36,7 @@ There are multiple configration options that you can change here - `ebin/vffov.a
 
 ##Usage
 
-Start application using `start.sh` script. Then start downloading using
+Start application using `bin/start.sh` script. Then start downloading using
 following call:
 
 ```erlang
