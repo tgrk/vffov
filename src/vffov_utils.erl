@@ -90,29 +90,20 @@ sanitize_url(Url) ->
             end
     end.
 
-%%FIXME: when using queue (1 or more downloads?) not all files are moved!!!
 -spec move_to_download_dir(string()) -> ok.
 move_to_download_dir(Url) ->
-    io:format("debug: url=~s~n", [Url]),
-    [R | Id] = string:tokens(Url, "="),
-    io:format("debug: r=~p, id=~p~n", [R, Id]),
+    [_ | Id] = string:tokens(Url, "="),
     Files = lists:filter(
-               fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
-               filelib:wildcard("*")
-              ),
-    io:format("debug: files=~w~n", [Files]),
+              fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
+              filelib:wildcard("*")
+             ),
     TargetDir = application:get_env(vffov, download_dir, ""),
-    io:format("debug: target_dir=~s~n", [TargetDir]),
-    R1 = lists:map(
+    lists:foreach(
       fun(File) ->
-              io:format("debug: move ~p -> ~p~n",
-                        [File, filename:join(TargetDir, File)]),
               file:rename(File, filename:join(TargetDir, File))
       end,
       Files
-     ),
-    io:format("debug: results=~p~n", [R1]),
-    ok.
+     ).
 
 -spec open_downloader_port(string()) -> port().
 open_downloader_port(Url) ->
@@ -144,7 +135,7 @@ read_pocket_credentials() ->
         {ok, Keys} ->
             Keys;
         Other ->
-            vffov_utils:verbose(error, "Unable to read getpocket "
+            verbose(error, "Unable to read getpocket "
                                 "credentials - ~p!", [Other]),
             throw("Unable to read stored credentials!")
     end.
