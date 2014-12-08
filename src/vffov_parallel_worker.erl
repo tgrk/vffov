@@ -21,7 +21,8 @@
          terminate/2, code_change/3]).
 
 -record(state, {id          :: string(),
-                current_url :: url()
+                current_url :: url(),
+                start_ts    :: pos_integer()
                }).
 
 %%%============================================================================
@@ -44,10 +45,10 @@ get_url() ->
 %%%============================================================================
 init([{Id, Url}]) ->
     process_flag(trap_exit, true),
-    {ok, #state{id = Id, current_url = Url}, 0};
+    {ok, #state{id = Id, current_url = Url, start_ts = edatetime:now2ts()}, 0};
 init([Url]) ->
     process_flag(trap_exit, true),
-    {ok, #state{id = undefined, current_url = Url}, 0}.
+    {ok, #state{current_url = Url, start_ts = edatetime:now2ts()}, 0}.
 
 handle_call(current_url, _From, State) ->
     {reply, {ok, State#state.current_url}, State};
@@ -76,7 +77,7 @@ handle_info({_Port, {exit_status,23}}, State) ->
 handle_info({_Port, {exit_status, 0}}, #state{id = Id, current_url = Url}
             = State) ->
     vffov_utils:verbose(info, "Finished downloading ~s", [Url]),
-    vffov_utils:move_to_download_dir(Url),
+    vffov_utils:move_to_download_dir(Url, State#state.start_ts),
 
     %% mark as downloaded (getpocket)
     case Id =/= undefined of

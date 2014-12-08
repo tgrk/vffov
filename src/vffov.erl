@@ -15,6 +15,8 @@
 
          status/0,
          queue/0,
+         stats/0,
+         help/0,
          plugins/0,
          set_download_mode/1,
 
@@ -64,6 +66,10 @@ download_pocket(Opts) ->
                                 "Check you consumer key!", [])
     end.
 
+-spec stats() -> [any()].
+stats() ->
+    simple_cache:ops_list().
+
 -spec status() -> [any()].
 status() ->
     lists:filtermap(
@@ -91,6 +97,10 @@ queue() ->
         false -> hd(Filtered)
     end.
 
+-spec help() -> ok.
+help() ->
+    vffov_app:print_welcome().
+
 -spec set_download_mode(paralel | queued) -> any().
 set_download_mode(parallel) ->
     application:set_env(vffov, download_parallel, true);
@@ -108,7 +118,7 @@ plugins() ->
 
 -spec start() -> ok.
 start() ->
-    [application:start(A) || A <- deps()],
+    [application:ensure_all_started(A) || A <- deps()],
 
     application:load(vffov),
     load_plugins(),
@@ -192,5 +202,8 @@ parse_1(txt, Bin) ->
         List -> List
     end.
 
+%%deps() ->
+%%    [compiler, syntax_tools, lager, jiffy, statman, simple_cache].
+
 deps() ->
-    [compiler, syntax_tools, lager, jiffy, statman].
+    [lager, jiffy, statman, simple_cache].

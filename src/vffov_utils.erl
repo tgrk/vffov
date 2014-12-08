@@ -14,7 +14,7 @@
          is_url/1,
          sanitize_urls/1,
          sanitize_url/1,
-         move_to_download_dir/1,
+         move_to_download_dir/2,
          get_downloader/0,
          open_downloader_port/1,
          close_downloader_port/1,
@@ -90,8 +90,8 @@ sanitize_url(Url) ->
             end
     end.
 
--spec move_to_download_dir(string()) -> ok.
-move_to_download_dir(Url) ->
+-spec move_to_download_dir(string(), pos_integer()) -> ok.
+move_to_download_dir(Url, Start) ->
     [_ | Id] = string:tokens(Url, "="),
     Files = lists:filter(
               fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
@@ -100,6 +100,18 @@ move_to_download_dir(Url) ->
     TargetDir = application:get_env(vffov, download_dir, ""),
     lists:foreach(
       fun(File) ->
+              {ok, FileInfo} = file:read_file_info(File),
+
+              %% update file stats
+              simple_cache:set(erlang:phash2(Url),
+                              [{file,   File},
+                               {url,    Url},
+                               {status, finished},
+                               {size,   element(2, FileInfo)},
+                               {start,  edatetime:ts2datetime(Start)},
+                               {finish, element(5, FileInfo)}
+                              ]),
+
               file:rename(File, filename:join(TargetDir, File))
       end,
       Files
@@ -107,6 +119,17 @@ move_to_download_dir(Url) ->
 
 -spec open_downloader_port(string()) -> port().
 open_downloader_port(Url) ->
+
+    %% add file stats
+    simple_cache:set(erlang:phash2(Url),
+                     [{file,   ""},
+                      {url,    Url},
+                      {status, downloading},
+                      {size,   0},
+                      {start,  0},
+                      {finish, 0}
+                     ]),
+
     erlang:open_port(
       {spawn, build_downloader_command(Url)},
       [exit_status]

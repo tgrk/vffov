@@ -25,7 +25,8 @@
 -record(state, {port        :: port(),
                 queue       :: queue:queue({url(), string()}),
                 id          :: string(),
-                current_url :: url()
+                current_url :: url(),
+                start_ts    :: pos_integer()
                }).
 
 %%%============================================================================
@@ -56,10 +57,11 @@ get_queue() ->
 %%%============================================================================
 init([Queue]) ->
     process_flag(trap_exit, false),
-    {ok, #state{queue = queue:from_list(Queue)}, 0};
+    {ok, #state{queue = queue:from_list(Queue),
+                start_ts = edatetime:now2ts()}, 0};
 init([]) ->
     process_flag(trap_exit, false),
-    {ok, #state{queue = queue:new()}, 0}.
+    {ok, #state{queue = queue:new(), start_ts = edatetime:now2ts()}, 0}.
 
 handle_call(current_url, _From, State) ->
     {reply, {ok, State#state.current_url}, State};
@@ -107,11 +109,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================
 finish_download(#state{id = undefined, current_url = Url} = State) ->
     vffov_utils:verbose(info, "Finished downloading ~s", [Url]),
-    vffov_utils:move_to_download_dir(Url),
+    vffov_utils:move_to_download_dir(Url, State#state.start_ts),
     do_download(State);
 finish_download(#state{id = Id, current_url = Url} = State) ->
     vffov_utils:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
-    vffov_utils:move_to_download_dir(Url),
+    vffov_utils:move_to_download_dir(Url, State#state.start_ts),
+
+    vffov_utils:move_to_download_dir(Url, State#state.start_ts),
 
     %%FIXME: handle plugins generically
     %% mark as downloaded resource (getpocket)
