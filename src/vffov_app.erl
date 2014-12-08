@@ -11,6 +11,7 @@
 
 %% Application callbacks
 -export([start/2, stop/1]).
+-export([print_welcome/0]).
 
 %%=============================================================================
 %% Application callbacks
@@ -27,6 +28,8 @@ start(_StartType, _StartArgs) ->
                         fun vffov_utils:process_sizes/0, 6000),
             ok = statman_server:add_subscriber(statman_aggregator),
 
+            print_welcome(),
+
             {ok, Pid};
         {error, Reason} ->
             {error, Reason}
@@ -34,4 +37,26 @@ start(_StartType, _StartArgs) ->
 
 -spec stop(any()) -> 'ok'.
 stop(_State) ->
+    ok.
+
+-spec print_welcome() -> ok.
+print_welcome() ->
+    Print = fun (Line, Args) -> vffov_utils:verbose(info, Line, Args) end,
+    Print("+-------------------------------------------------+", []),
+    Print("| Welcome to VFFOV                                |", []),
+    Print("+-------------------------------------------------+", []),
+    Print("| * REST API - http://127.0.0.1:8081/             |", []),
+    Print("| * Statman  - http://127.0.0.1:8081/statman      |", []),
+    Print("+-------------------------------------------------+", []),
+    Print("| Commands:                                       |", []),
+    Print("+-------------------------------------------------+", []),
+    HelpFun = fun ({module_info, _Arity}) ->
+                      ignore;
+                  ({download_pocket, _Arity}) ->
+                      ignore;
+                  ({Name, Arity}) ->
+                      Print("  * ~s/~s" , [Name, integer_to_list(Arity)])
+              end,
+    lists:foreach(HelpFun, vffov:module_info(exports)),
+    Print("+-------------------------------------------------+", []),
     ok.
