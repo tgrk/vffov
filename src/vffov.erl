@@ -11,6 +11,7 @@
 %% API
 -export([download/0,
          download/1,
+         download/2,
          download_pocket/1,
 
          status/0,
@@ -44,8 +45,8 @@ download(L) when is_list(L) ->
                                 "configuration.", [])
     end.
 
--spec download_pocket([{atom(), any()}]) -> any().
-download_pocket(Opts) ->
+-spec download(atom(), [{atom(), any()}]) -> any().
+download(pocket, Opts) ->
     case vffov_getpocket:auth() of
         {ok, {request_url, Url}} ->
             vffov_utils:verbose(info, "Open following ~p in your browser and"
@@ -64,7 +65,10 @@ download_pocket(Opts) ->
             vffov_utils:verbose(error,
                                 "Unable to reqeust authentification code! "
                                 "Check you consumer key!", [])
-    end.
+    end;
+download(Plugin, _Opts) ->
+    vffov_utils:verbose(error, "Unknown plugin ~s!", [Plugin]),
+    error.
 
 -spec stats() -> [any()].
 stats() ->
@@ -201,9 +205,6 @@ parse_1(txt, Bin) ->
         []   -> empty_playlist;
         List -> List
     end.
-
-%%deps() ->
-%%    [compiler, syntax_tools, lager, jiffy, statman, simple_cache].
 
 deps() ->
     [lager, jiffy, statman, simple_cache].

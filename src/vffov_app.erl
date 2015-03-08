@@ -52,8 +52,6 @@ print_welcome() ->
     Print("+-------------------------------------------------+", []),
     HelpFun = fun ({module_info, _Arity}) ->
                       ignore;
-                  ({download_pocket, _Arity}) ->
-                      ignore;
                   ({Name, Arity}) ->
                       Print("  * ~s/~s" , [Name, integer_to_list(Arity)])
               end,
