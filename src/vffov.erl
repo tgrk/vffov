@@ -12,7 +12,6 @@
 -export([download/0,
          download/1,
          download/2,
-         download_pocket/1,
 
          status/0,
          queue/0,
