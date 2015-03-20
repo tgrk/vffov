@@ -45,7 +45,7 @@ download(L) when is_list(L) ->
     end.
 
 -spec download(atom(), [{atom(), any()}]) -> any().
-download(pocket, Opts) ->
+download(getpocket, Opts) ->
     case vffov_getpocket:auth() of
         {ok, {request_url, Url}} ->
             vffov_utils:verbose(info, "Open following ~p in your browser and"
@@ -66,7 +66,8 @@ download(pocket, Opts) ->
                                 "Check you consumer key!", [])
     end;
 download(Plugin, _Opts) ->
-    vffov_utils:verbose(error, "Unknown plugin ~s!", [Plugin]),
+    vffov_utils:verbose(error, "Unknown plugin ~s! Existing plugins: "
+                        "vffov:plugins()", [Plugin]),
     error.
 
 -spec stats() -> [any()].
