@@ -22,7 +22,7 @@
                {api_port,           8081},
 
                {enable_getpocket,   true},
-               {enable_youtube,     true},
+               {enable_youtube,     false},
 
                {download_dir,       "/home/wiso/Videos/"},
                {downloader_path,    "/usr/bin/youtube-dl"},
