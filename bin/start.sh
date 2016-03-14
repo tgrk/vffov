@@ -1,1 +1,3 @@
-erl -pa ebin/ deps/*/ebin test/ -boot start_sasl -s vffov
+#!/bin/bash
+
+erl -pa ebin/ deps/*/ebin -d -boot start_sasl -noshell -detached -s vffov
