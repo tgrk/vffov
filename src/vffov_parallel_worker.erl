@@ -77,7 +77,8 @@ handle_info({_Port, {exit_status,23}}, State) ->
 handle_info({_Port, {exit_status, 0}}, #state{id = Id, current_url = Url}
             = State) ->
     vffov_utils:verbose(info, "Finished downloading ~s", [Url]),
-    vffov_utils:move_to_download_dir(Url, State#state.start_ts),
+    {ok, Path} = vffov_utils:move_to_download_dir(Url, State#state.start_ts),
+    ok = vffov_utils:maybe_execute_command(post, Path),
 
     %% mark as downloaded (getpocket)
     case Id =/= undefined of

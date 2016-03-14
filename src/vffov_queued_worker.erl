@@ -113,9 +113,8 @@ finish_download(#state{id = undefined, current_url = Url} = State) ->
     do_download(State);
 finish_download(#state{id = Id, current_url = Url} = State) ->
     vffov_utils:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
-    vffov_utils:move_to_download_dir(Url, State#state.start_ts),
-
-    vffov_utils:move_to_download_dir(Url, State#state.start_ts),
+    {ok, Path} = vffov_utils:move_to_download_dir(Url, State#state.start_ts),
+    ok = vffov_utils:maybe_execute_command(post, Path),
 
     %%FIXME: handle plugins generically
     %% mark as downloaded resource (getpocket)

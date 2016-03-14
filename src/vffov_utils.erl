@@ -15,6 +15,7 @@
          sanitize_urls/1,
          sanitize_url/1,
          move_to_download_dir/2,
+         maybe_execute_command/2,
          get_downloader/0,
          open_downloader_port/1,
          close_downloader_port/1,
@@ -92,30 +93,44 @@ sanitize_url(Url) ->
 
 -spec move_to_download_dir(string(), pos_integer()) -> ok.
 move_to_download_dir(Url, Start) ->
+    %% find file by id in path (note that this is YT specific)
     [_ | Id] = string:tokens(Url, "="),
-    Files = lists:filter(
+    [File] = lists:filter(
               fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
               filelib:wildcard("*")
              ),
     TargetDir = application:get_env(vffov, download_dir, ""),
-    lists:foreach(
-      fun(File) ->
-              {ok, FileInfo} = file:read_file_info(File),
 
-              %% update file stats
-              simple_cache:set(erlang:phash2(Url),
-                              [{file,   File},
-                               {url,    Url},
-                               {status, finished},
-                               {size,   element(2, FileInfo)},
-                               {start,  edatetime:ts2datetime(Start)},
-                               {finish, element(5, FileInfo)}
-                              ]),
+    {ok, FileInfo} = file:read_file_info(File),
 
-              file:rename(File, filename:join(TargetDir, File))
-      end,
-      Files
-     ).
+    %% update file stats
+    simple_cache:set(erlang:phash2(Url),
+                     [{file,   File},
+                      {url,    Url},
+                      {status, finished},
+                      {size,   element(2, FileInfo)},
+                      {start,  edatetime:ts2datetime(Start)},
+                      {finish, element(5, FileInfo)}
+                     ]),
+
+    %% finally move file
+    TargetPath = filename:join(TargetDir, File),
+    ok = file:rename(File, TargetPath),
+
+    {ok,TargetPath}.
+
+-spec maybe_execute_command(atom(), string()) -> ok.
+maybe_execute_command(post, Path) ->
+    try
+        case application:get_env(vffov, post_download_cmd, undefined) of
+            undefined -> ok;
+            ""        -> ok;
+            Command   -> os:cmd(hd(io_lib:format(Command, [Path])))
+        end
+    catch
+        _:Reason ->
+            {error, Reason}
+    end.
 
 -spec open_downloader_port(string()) -> port().
 open_downloader_port(Url) ->
@@ -146,7 +161,7 @@ get_downloader() ->
 -spec write_pocket_credentials(string(), string(), string())
                               -> ok | {error,any()}.
 write_pocket_credentials(Code, ConsumerKey, AccessToken) ->
-    Data = [{code, Code},
+    Data = [{code,         Code},
             {consumer_key, ConsumerKey},
             {access_token, AccessToken}],
     file:write_file("priv/getpocket.term", io_lib:format("~p.", [Data]),
