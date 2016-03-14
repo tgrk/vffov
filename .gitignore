@@ -10,3 +10,5 @@ priv/playlist.txt
 priv/getpocket.term
 priv/youtube.term
 ebin/vffov.app
+.rebar/
+vffov.log
