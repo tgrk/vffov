@@ -29,18 +29,21 @@ start_worker(vffov_parallel_worker = Worker, Url) ->
         {error, Reason} ->
             throw({unable_to_start_worker, Worker, Reason});
         {ok, Pid} ->
+            update_stats(downloads),
             Pid
     end;
 start_worker(vffov_queued_worker = Worker, Url) ->
     case get_queue_worker_pids() of
         [WorkerPid] ->
             ok = gen_server:cast(WorkerPid, {enqueue, Url}),
+            update_stats(downloads),
             WorkerPid;
         [] ->
             case supervisor:start_child(?MODULE, get_child(Worker, Url)) of
                 {error, Reason} ->
                     throw({unable_to_start_worker, Worker, Reason});
                 {ok, Pid} ->
+                    update_stats(downloads),
                     Pid
             end
     end.
@@ -73,6 +76,11 @@ get_child(Worker, Arg) ->
     Name = list_to_atom(atom_to_list(Worker) ++ "_" ++ integer_to_list(Mics)),
     {Name, {Worker, start_link, [Name, Arg]}, temporary, brutal_kill,
      worker, [Worker]}.
+
+update_stats(downloads) ->
+    Count = length([PL || {_, PL, _} <- simple_cache:ops_list(),
+                          proplists:get_value(status, PL) =:= finished]),
+    statman_gauge:set(downloads, Count).
 
 notifications_server() ->
     case is_api_enabled() of
