@@ -19,6 +19,7 @@
          help/0,
          plugins/0,
          set_download_mode/1,
+         set_post_download_cmd/1,
 
          start/0,
          stop/0
@@ -112,6 +113,10 @@ set_download_mode(queued) ->
     application:set_env(vffov, download_parallel, false);
 set_download_mode(_Other) ->
     vffov_utils:verbose(info, "Allowed modes: parallel or queued", []).
+
+-spec set_post_download_cmd(string()) -> ok.
+set_post_download_cmd(Cmd) ->
+    application:set_env(vffov, post_download_cmd, Cmd).
 
 -spec plugins() -> list({atom(), boolean()}).
 plugins() ->
