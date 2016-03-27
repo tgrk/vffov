@@ -125,7 +125,9 @@ maybe_execute_command(post, Path) ->
         case application:get_env(vffov, post_download_cmd, undefined) of
             undefined -> ok;
             ""        -> ok;
-            Command   -> os:cmd(hd(io_lib:format(Command, [Path])))
+            Command   ->
+                os:cmd(Command),
+                ok
         end
     catch
         _:Reason ->

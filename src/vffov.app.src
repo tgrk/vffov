@@ -1,3 +1,4 @@
+
 {application, vffov,
  [
   {description, "Video Fetcher For Offline View"},
@@ -28,6 +29,6 @@
                {downloader_path,    "/usr/bin/youtube-dl"},
                {downloader_params,  "--quiet"},
 
-               {post_download_cmd, ""}
+               {post_download_cmd, "sudo mv /home/wiso/Videos/*.mp4 /media/sf_Linux_Share/"}
               ]}
  ]}.

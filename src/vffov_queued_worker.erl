@@ -112,10 +112,16 @@ finish_download(#state{id = undefined, current_url = Url} = State) ->
     vffov_utils:move_to_download_dir(Url, State#state.start_ts),
     do_download(State);
 finish_download(#state{id = Id, current_url = Url} = State) ->
-    vffov_utils:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
-    {ok, Path} = vffov_utils:move_to_download_dir(Url, State#state.start_ts),
-    ok = vffov_utils:maybe_execute_command(post, Path),
-
+    try
+        vffov_utils:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
+        {ok, Path} = vffov_utils:move_to_download_dir(Url, State#state.start_ts),
+        vffov_utils:verbose(info, "path=~p", [Path]),
+        ok = vffov_utils:maybe_execute_command(post, Path)
+    catch
+        Error ->
+            vffov_utils:verbose(info, "Error: ~p:~p",
+                                [Error, erlang:get_stacktrace()])
+    end,
     %%FIXME: handle plugins generically
     %% mark as downloaded resource (getpocket)
     vffov_getpocket:mark_done(Id),
