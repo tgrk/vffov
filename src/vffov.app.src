@@ -1,3 +1,4 @@
+
 {application, vffov,
  [
   {description, "Video Fetcher For Offline View"},
@@ -22,10 +23,12 @@
                {api_port,           8082},
 
                {enable_getpocket,   true},
-               {enable_youtube,     true},
+               {enable_youtube,     false},
 
                {download_dir,       "/home/wiso/Videos/"},
                {downloader_path,    "/usr/bin/youtube-dl"},
-               {downloader_params,  "--quiet"}
+               {downloader_params,  "--quiet"},
+
+               {post_download_cmd, "sudo mv /home/wiso/Videos/*.mp4 /media/sf_Linux_Share/"}
               ]}
  ]}.

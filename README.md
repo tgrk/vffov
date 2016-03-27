@@ -36,7 +36,7 @@ There are multiple configration options that you can change here - `ebin/vffov.a
 
 ##Usage from Erlang console
 
-Start application using `start.sh` script. Then start downloading using
+Start application using `bin/start.sh` script. Then start downloading using
 following call:
 
 ```erlang
@@ -54,7 +54,7 @@ Or add list of Urls from console:
 4> vffov:download(L).
 ```
 
-You could also use default playlist that is stored in ```priv/playlist.txt``:
+You could also use default playlist that is stored in ```priv/playlist.txt.sample`` or ```priv/playlist.json.sample```.:
 
 ```erlang
 5> vffov:download().
@@ -113,12 +113,12 @@ You also need to enable plugin in `ebin/vffov.app`:
 
 Download all videos:
 ```erlang
-8> vffov:download_pocket([{contentType, video}]).
+8> vffov:download(pocket, [{contentType, video}]).
 ```
 
 Download 5 last items with youtube tag:
 ```erlang
-9> vffov:download_pocket([{tag, youtube},{offset, 0}, {count, 5}]).
+9> vffov:download(pocket, [{tag, youtube},{offset, 0}, {count, 5}]).
 ```
 
 ##REST API

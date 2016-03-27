@@ -61,19 +61,8 @@ list(Options) ->
                   {<<"list">>,[]},
                   {<<"since">>, _}]} ->
                     empty;
-                {[{<<"status">>,1},
-                  {<<"complete">>,1},
-                  {<<"list">>, {Items}}, _]} ->
-                    lists:filtermap(
-                      fun({Id, {Item}}) ->
-                              %% download only youtube based videos
-                              Url = binary_to_list(
-                                      proplists:get_value(<<"given_url">>, Item)),
-                              case string:str(Url, "youtube.com") > 0 of
-                                  true  -> {true, {binary_to_list(Id), Url}};
-                                  false -> false
-                              end
-                      end, Items)
+                Result1 ->
+                    filter_urls(Result1)
             end;
         {error, Reason} ->
             {error, {unable_to_list, Reason}}
@@ -91,6 +80,27 @@ mark_done(ItemId) ->
 %%%============================================================================
 %%% Internal functionality
 %%%============================================================================
+filter_urls({Result}) ->
+    case proplists:get_value(<<"status">>, Result) =:= 1 andalso
+        proplists:get_value(<<"complete">>, Result) =:= 1  of
+        true ->
+            {Items} = proplists:get_value(<<"list">>, Result),
+            lists:filtermap(
+              fun({Id, {Item}}) ->
+                      URL = get_url(Item),
+                      %% download only youtube based videos
+                      case string:str(URL, "youtube.com") > 0 of
+                          true  -> {true, {binary_to_list(Id), URL}};
+                          false -> false
+                      end
+              end, Items);
+        false ->
+            empty
+    end.
+
+get_url(Item) ->
+    binary_to_list(proplists:get_value(<<"given_url">>, Item)).
+
 get_credentials() ->
     [Keys] = vffov_utils:read_pocket_credentials(),
     ConsumerKey = proplists:get_value(consumer_key, Keys),
