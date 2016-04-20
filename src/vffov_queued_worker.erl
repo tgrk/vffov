@@ -115,7 +115,6 @@ finish_download(#state{id = Id, current_url = Url} = State) ->
     try
         vffov_utils:verbose(info, "Finished downloading ~s (id=~p)", [Url, Id]),
         {ok, Path} = vffov_utils:move_to_download_dir(Url, State#state.start_ts),
-        vffov_utils:verbose(info, "path=~p", [Path]),
         ok = vffov_utils:maybe_execute_command(post, Path)
     catch
         Error ->
