@@ -57,7 +57,9 @@ get_queue() ->
 %%%============================================================================
 init([Queue]) ->
     process_flag(trap_exit, false),
-    {ok, #state{queue = queue:from_list(Queue),
+
+    %% prevent adding duplicity url to queue
+    {ok, #state{queue = queue:from_list(sets:to_list(sets:from_list(Queue))),
                 start_ts = edatetime:now2ts()}, 0};
 init([]) ->
     process_flag(trap_exit, false),
@@ -72,8 +74,14 @@ handle_call(Call, From, State) ->
     {reply, invalid_call, State}.
 
 handle_cast({enqueue, Url}, #state{queue = Queue} = State) ->
-    vffov_utils:verbose(info, "Add ~s to queue", [Url]),
-    {noreply, State#state{queue = queue:in(Url, Queue)}};
+    %% prevent adding duplicity url to queue
+    case lists:member(Url, queue:to_list(Queue)) of
+        false ->
+            vffov_utils:verbose(info, "Add ~s to queue", [Url]),
+            {noreply, State#state{queue = queue:in(Url, Queue)}};
+        true ->
+            {noreply, State}
+    end;
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(Cast, State) ->
