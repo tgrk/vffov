@@ -59,7 +59,7 @@ download(getpocket, Opts) ->
                     vffov_utils:verbose(error,
                                         "Unable to get items from getpocket "
                                         "service! Error ~p", [Reason]);
-                List  -> handle_download(List)
+                List  -> handle_download(lists:reverse(List))
             end;
         error ->
             vffov_utils:verbose(error,
