@@ -77,7 +77,7 @@ handle_cast({enqueue, Url}, #state{queue = Queue} = State) ->
     %% prevent adding duplicity url to queue
     case lists:member(Url, queue:to_list(Queue)) of
         false ->
-            vffov_utils:verbose(info, "Add ~s to queue", [Url]),
+            vffov_utils:verbose(info, "Add ~p to queue", [Url]),
             {noreply, State#state{queue = queue:in(Url, Queue)}};
         true ->
             {noreply, State}
