@@ -15,7 +15,8 @@
          stop/0,
          enqueue/1,
          get_url/0,
-         get_queue/0
+         get_queue/0,
+         clean/0
         ]).
 
 %% gen_server callbacks
@@ -52,6 +53,10 @@ get_url() ->
 get_queue() ->
     gen_server:call(?MODULE, current_queue).
 
+-spec clean() -> ok | no_return().
+clean() ->
+    gen_server:call(?MODULE, clean).
+
 %%%============================================================================
 %%% gen_server callbacks
 %%%============================================================================
@@ -65,6 +70,8 @@ init([]) ->
     process_flag(trap_exit, false),
     {ok, #state{queue = queue:new(), start_ts = edatetime:now2ts()}, 0}.
 
+handle_call(clean, _From, State) ->
+    {reply, ok, State#state{queue = queue:new()}};
 handle_call(current_url, _From, State) ->
     {reply, {ok, State#state.current_url}, State};
 handle_call(current_queue, _From, State) ->

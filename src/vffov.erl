@@ -15,6 +15,7 @@
 
          status/0,
          queue/0,
+         clean_queue/0,
          stats/0,
          help/0,
          plugins/0,
@@ -101,6 +102,10 @@ queue() ->
         true  -> queue:new();
         false -> hd(Filtered)
     end.
+
+-spec clean_queue() -> ok | no_return().
+clean_queue() ->
+    vffov_queued_worker:clean().
 
 -spec help() -> ok.
 help() ->
