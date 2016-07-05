@@ -57,13 +57,10 @@ get_stats() ->
 %% Supervisor callbacks
 %%=============================================================================
 init([]) ->
-    ChildSpecs = [
-                  statman_aggregator(),
-                  statman_elli(),
-                  elli(),
+    ChildSpecs = [elli(),
                   notifications_server()
                  ],
-    {ok, {{one_for_one, 5, 10}, lists:flatten(ChildSpecs)}}.
+    {ok, {{one_for_one, 5, 10}, ChildSpecs}}.
 
 %%%============================================================================
 %%% Internal functions
@@ -72,8 +69,8 @@ get_child(vffov_queued_worker = Worker, Arg) ->
     {Worker, {Worker, start_link, [Arg]}, temporary, brutal_kill,
      worker, [Worker]};
 get_child(Worker, Arg) ->
-    {_, _, Mics} = erlang:now(),
-    Name = list_to_atom(atom_to_list(Worker) ++ "_" ++ integer_to_list(Mics)),
+    Suffix = integer_to_list(erlang:monotonic_time()),
+    Name = list_to_atom(atom_to_list(Worker) ++ "_" ++ Suffix),
     {Name, {Worker, start_link, [Name, Arg]}, temporary, brutal_kill,
      worker, [Worker]}.
 
@@ -99,15 +96,6 @@ get_queue_worker_pids() ->
               false
       end, supervisor:which_children(vffov_sup)).
 
-%% Childspecs required by statman dashboard
-statman_aggregator() ->
-    {statman_aggregator, {statman_aggregator, start_link, []},
-     permanent, 5000, worker, []}.
-
-statman_elli() ->
-    {statman_elli, {statman_elli_server, start_link, []},
-     permanent, 5000, worker, []}.
-
 elli() ->
     Opts = [{callback, elli_middleware},
             {callback_args, [{mods, get_elli_mods()}]},
@@ -116,14 +104,7 @@ elli() ->
     {elli, {elli, start_link, [Opts]}, permanent, 5000, worker, []}.
 
 get_elli_mods() ->
-    {ok, Cwd} = file:get_cwd(),
-    StatmanConfig = [{name, collect_statman_elli},
-                     {docroot, filename:join(
-                                 [Cwd, "deps/statman_elli/priv/docroot"]
-                                )
-                     }],
-    DefaultMods = [{statman_elli, StatmanConfig},
-                   {elli_access_log, []}],
+    DefaultMods = [{elli_access_log, []}],
 
     ApiMod = case is_api_enabled() of
                  true  -> [{vffov_api, []}];
@@ -132,5 +113,5 @@ get_elli_mods() ->
     lists:concat([DefaultMods, ApiMod]).
 
 is_api_enabled() ->
-    {ok, Enabled} =  application:get_env(vffov, enable_api),
+    {ok, Enabled} = application:get_env(vffov, enable_api),
     Enabled.

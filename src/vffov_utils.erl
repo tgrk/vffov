@@ -20,9 +20,7 @@
          open_downloader_port/1,
          close_downloader_port/1,
          read_pocket_credentials/0,
-         write_pocket_credentials/3,
-         process_sizes/0,
-         total_memory/1
+         write_pocket_credentials/3
         ]).
 
 %%=============================================================================
@@ -91,7 +89,7 @@ sanitize_url(Url) ->
             end
     end.
 
--spec move_to_download_dir(string(), pos_integer()) -> ok.
+-spec move_to_download_dir(string(), pos_integer()) -> {ok, string()}.
 move_to_download_dir(Url, Start) ->
     %% find file by id in path (note that this is YT specific)
     [_ | Id] = string:tokens(Url, "="),
@@ -117,10 +115,11 @@ move_to_download_dir(Url, Start) ->
     TargetPath = filename:join(TargetDir, File),
     ok = file:rename(File, TargetPath),
 
-    {ok,TargetPath}.
+    {ok, TargetPath}.
 
+%%TODO: we are ignoring path argument here!
 -spec maybe_execute_command(atom(), string()) -> ok.
-maybe_execute_command(post, Path) ->
+maybe_execute_command(post, _Path) ->
     try
         case application:get_env(vffov, post_download_cmd, undefined) of
             undefined -> ok;
@@ -136,7 +135,6 @@ maybe_execute_command(post, Path) ->
 
 -spec open_downloader_port(string()) -> port().
 open_downloader_port(Url) ->
-
     %% add file stats
     simple_cache:set(erlang:phash2(Url),
                      [{file,   ""},
@@ -161,7 +159,7 @@ get_downloader() ->
     application:get_env(vffov, downloader_path, "/usr/bin/youtube-dl").
 
 -spec write_pocket_credentials(string(), string(), string())
-                              -> ok | {error,any()}.
+                              -> ok | {error, term()}.
 write_pocket_credentials(Code, ConsumerKey, AccessToken) ->
     Data = [{code,         Code},
             {consumer_key, ConsumerKey},
@@ -169,45 +167,15 @@ write_pocket_credentials(Code, ConsumerKey, AccessToken) ->
     file:write_file("priv/getpocket.term", io_lib:format("~p.", [Data]),
                     [write]).
 
--spec read_pocket_credentials() -> list({atom(), any()}) | no_return().
+-spec read_pocket_credentials() -> [proplists:property()] | no_return().
 read_pocket_credentials() ->
     case file:consult("priv/getpocket.term") of
-        {ok, Keys} ->
+        {ok, [Keys]} ->
             Keys;
         Other ->
             verbose(error, "Unable to read getpocket "
-                                "credentials - ~p!", [Other]),
+                    "credentials - ~p!", [Other]),
             throw("Unable to read stored credentials!")
-    end.
-
--spec process_sizes() -> list({memory, integer()}).
-process_sizes() ->
-    Pids = lists:filtermap(
-             fun ({Id, Pid, _, _}) when Id =:= vffov_queued_worker ->
-                     {true, Pid};
-                 ({_, Pid, _, Modules}) ->
-                     case lists:member(vffov_parallel_worker, Modules) of
-                         true -> {true, Pid};
-                         false -> false
-                     end;
-                 (_) ->
-                     false
-             end,
-             supervisor:which_children(vffov_sup)),
-    lists:filtermap(fun (P) ->
-                            case total_memory(P) of
-                                undefined -> false;
-                                Bytes     -> {true, {memory, Bytes}}
-                            end
-                    end, Pids).
-
--spec total_memory(pid()) -> integer() | undefined.
-total_memory(Pid) ->
-    case {process_info(Pid, memory), process_info(Pid, binary)} of
-        {A, B} when A =:= undefined orelse B =:= undefined ->
-            undefined;
-        {{memory, Memory}, {binary, B}} ->
-            Memory + lists:sum([Size || {_, Size, _} <- B])
     end.
 
 %%=============================================================================

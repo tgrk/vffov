@@ -42,10 +42,10 @@ get([<<"stream">>], Req) ->
     ok = vffov_notify_server:add_client(elli_request:chunk_ref(Req)),
     {chunk, [{<<"Content-Type">>, <<"text/event-stream">>}]};
 get([<<"queue">>], _Req) ->
-    case vffov:queue() of
-        []        -> return_json({[]});
-        [{[],[]}] -> return_json({[]});
-        Queue     ->
+    Queue = vffov:queue(),
+    case queue:is_empty(Queue) of
+        true  -> return_json({[]});
+        false ->
             JsonStruct = lists:map(fun ([Item]) ->
                                            {[{url, list_to_binary(Item)}]}
                                    end, queue:to_list(Queue)),
@@ -62,7 +62,7 @@ get(_Path, _Req) ->
     return_error(not_found).
 
 %%TODO: plugins api? handle plugin specific json to start downlod
-post([<<"download">>, <<"plugins">>, PluginName], Req) ->
+post([<<"download">>, <<"plugins">>, _PluginName], _Req) ->
     return_json(<<"not_implemented">>);
 post([<<"download">>], Req) ->
     try

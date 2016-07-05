@@ -22,7 +22,7 @@ load() ->
 
 -spec auth() ->  ok | {ok, {request_url, string()}} | error.
 auth() ->
-    [Keys] = vffov_utils:read_pocket_credentials(),
+    Keys = vffov_utils:read_pocket_credentials(),
     ConsumerKey = proplists:get_value(consumer_key, Keys),
     case proplists:get_value(code, Keys) of
         [] ->
@@ -102,7 +102,7 @@ get_url(Item) ->
     binary_to_list(proplists:get_value(<<"given_url">>, Item)).
 
 get_credentials() ->
-    [Keys] = vffov_utils:read_pocket_credentials(),
+    Keys = vffov_utils:read_pocket_credentials(),
     ConsumerKey = proplists:get_value(consumer_key, Keys),
     AccessToken = proplists:get_value(access_token, Keys),
     {ConsumerKey, AccessToken}.

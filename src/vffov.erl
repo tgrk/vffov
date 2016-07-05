@@ -217,4 +217,4 @@ parse_1(txt, Bin) ->
     end.
 
 deps() ->
-    [lager, jiffy, statman, simple_cache].
+    [lager, jiffy, simple_cache].
