@@ -81,9 +81,11 @@ update_stats(downloads) ->
 
 notifications_server() ->
     case is_api_enabled() of
-        true  -> {vffov_notify_server, {vffov_notify_server, start_link, []},
-                  permanent, 5000, worker, []};
-        false -> []
+        true  ->
+            {vffov_notify_server, {vffov_notify_server, start_link, []},
+             permanent, 5000, worker, []};
+        false ->
+            []
     end.
 
 get_queue_worker_pids() ->
