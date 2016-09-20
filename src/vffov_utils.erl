@@ -91,7 +91,7 @@ sanitize_url(Url) ->
             end
     end.
 
--spec move_to_download_dir(string(), pos_integer()) -> ok.
+-spec move_to_download_dir(string(), pos_integer()) -> {ok, string()} | no_return().
 move_to_download_dir(Url, Start) ->
     %% find file by id in path (note that this is YT specific)
     [_ | Id] = string:tokens(Url, "="),
@@ -117,7 +117,7 @@ move_to_download_dir(Url, Start) ->
     TargetPath = filename:join(TargetDir, File),
     ok = file:rename(File, TargetPath),
 
-    {ok,TargetPath}.
+    {ok, TargetPath}.
 
 -spec maybe_execute_command(atom(), string()) -> ok.
 maybe_execute_command(post, Path) ->

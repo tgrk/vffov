@@ -23,7 +23,7 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
--spec start_worker(workers(), url()) -> pid() | no_return().
+-spec start_worker(workers(), string()) -> pid() | no_return().
 start_worker(vffov_parallel_worker = Worker, Url) ->
     case supervisor:start_child(?MODULE, get_child(Worker, Url)) of
         {error, Reason} ->
@@ -72,8 +72,7 @@ get_child(vffov_queued_worker = Worker, Arg) ->
     {Worker, {Worker, start_link, [Arg]}, temporary, brutal_kill,
      worker, [Worker]};
 get_child(Worker, Arg) ->
-    {_, _, Mics} = erlang:now(),
-    Name = list_to_atom(atom_to_list(Worker) ++ "_" ++ integer_to_list(Mics)),
+    Name = list_to_atom(atom_to_list(Worker) ++ "_" ++ integer_to_list(erlang:phash2(erlang:timestamp()))),
     {Name, {Worker, start_link, [Name, Arg]}, temporary, brutal_kill,
      worker, [Worker]}.
 
