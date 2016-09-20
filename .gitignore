@@ -12,3 +12,6 @@ priv/youtube.term
 ebin/vffov.app
 .rebar/
 vffov.log
+_build/
+rebar.lock
+
