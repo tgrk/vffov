@@ -44,7 +44,8 @@ get([<<"stream">>], Req) ->
 get([<<"queue">>], _Req) ->
     Queue = vffov:queue(),
     case queue:is_empty(Queue) of
-        true  -> return_json({[]});
+        true  ->
+            return_json({[]});
         false ->
             JsonStruct = lists:map(fun ([Item]) ->
                                            {[{url, list_to_binary(Item)}]}

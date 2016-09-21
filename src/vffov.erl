@@ -29,47 +29,78 @@
 %%%=============================================================================
 %%% API
 %%%=============================================================================
--spec download() -> any().
+-spec download() -> ok | error.
 download() ->
-    download(vffov_utils:priv_dir(vffov) ++ "playlist.txt").
+    Opts = #{type   => file,
+             args   => vffov_utils:priv_dir(vffov) ++ "playlist.txt",
+             offset => -1,
+             count  => -1
+            },
+    download(local, Opts).
 
--spec download(url()) -> any().
+-spec download(opts()) -> ok | error.
 download(L) when is_list(L) ->
+    Opts = #{type   => list,
+             args   => L,
+             offset => -1,
+             count  => -1
+            },
+    download(local, Opts);
+download(Opts) when is_map(Opts) ->
+    DefaultOpts = #{type   => file,
+                    args   => vffov_utils:priv_dir(vffov) ++ "playlist.txt",
+                    offset => -1,
+                    count  => -1
+                   },
+    download(local, maps:merge(DefaultOpts, Opts)).
+
+-spec download(mode(), opts()) -> ok | error.
+download(local, Opts) ->
     case filelib:is_regular(vffov_utils:get_downloader()) of
         true  ->
-            case filelib:is_regular(L) of
-                true  -> download_1(L);
-                false -> process_url_list(L)
+            Opts1 = convert_opts(Opts),
+            case maps:get(type, Opts1) of
+                file ->
+                    case filelib:is_regular(maps:get(args, Opts1)) of
+                        true  -> download_playlist(Opts1);
+                        false -> error
+                    end;
+                list ->
+                    process_url_list(Opts1)
             end;
         false ->
             vffov_utils:verbose(error, "Downloader not found! Please check "
                                 "configuration.", [])
-    end.
-
--spec download(atom(), [{atom(), any()}]) -> any().
-download(getpocket, Opts) ->
+    end;
+download(getpocket, PluginArgs) ->
     case vffov_getpocket:auth() of
         {ok, {request_url, Url}} ->
             vffov_utils:verbose(info, "Open following ~p in your browser and"
                                 " run again.~n", [Url]);
         ok ->
-            case vffov_getpocket:list(Opts) of
+            case vffov_getpocket:list(PluginArgs) of
                 empty ->
                     vffov_utils:verbose(info, "No matching items.~n", []);
                 {error, Reason} ->
                     vffov_utils:verbose(error,
                                         "Unable to get items from getpocket "
                                         "service! Error ~p", [Reason]);
-                List  -> handle_download(lists:reverse(List))
+                List  ->
+                    Opts = #{type   => list,
+                             args   => lists:reverse(List),
+                             offset => -1,
+                             count  => -1
+                            },
+                    handle_download(Opts)
             end;
         error ->
             vffov_utils:verbose(error,
                                 "Unable to reqeust authentification code! "
                                 "Check you consumer key!", [])
     end;
-download(Plugin, _Opts) ->
+download(PluginName, _PluginArgs) ->
     vffov_utils:verbose(error, "Unknown plugin ~s! Existing plugins: "
-                        "vffov:plugins()", [Plugin]),
+                        "vffov:plugins()", [PluginName]),
     error.
 
 -spec stats() -> [any()].
@@ -162,21 +193,35 @@ load_plugins() ->
       end, Plugins),
     ok.
 
-download_1(Input) ->
-    %% handle input form console or file
-    case vffov_utils:is_url(Input) of
-        true  -> handle_download([Input]);
-        false -> handle_download(parse(Input))
-    end.
+download_playlist(Opts) ->
+    Input = maps:get(args, Opts),
+    Opts1 = case vffov_utils:is_url(Input) of
+                true  -> maps:put(args, [Input], Opts);
+                false -> maps:put(args, parse(Input), Opts)
+            end,
+    handle_download(Opts1).
 
-process_url_list(L) when is_list(L) ->
-    case length(L) > 0 andalso vffov_utils:is_url(hd(L)) of
-        true  -> handle_download(L);
-        false -> handle_download([L])
-    end.
+process_url_list(Opts) ->
+    Input = maps:get(args, Opts),
+    Opts1 = case length(Input) > 0 andalso vffov_utils:is_url(hd(Input)) of
+                true  -> maps:put(args, [Input], Opts);
+                false -> maps:put(args, Input, Opts)
+    end,
+    handle_download(Opts1).
 
-handle_download(List) ->
-    Sanitized = vffov_utils:sanitize_urls(List),
+handle_download(Opts) ->
+    Offset     = maps:get(offset, Opts, 0),
+    Count      = maps:get(count, Opts, 1),
+    ListOfUrls = case {Offset, Count} of
+                     {-1, -1} ->
+                         %% all
+                         maps:get(args, Opts, []);
+                     _ ->
+                         %% offset
+                         lists:sublist(maps:get(args, Opts), Offset, Count)
+                 end,
+
+    Sanitized = vffov_utils:sanitize_urls(ListOfUrls),
     case application:get_env(vffov, download_parallel, false) of
         true  -> lists:foreach(fun download_file/1, Sanitized);
         false -> queue_downloads(Sanitized)
@@ -200,8 +245,7 @@ parse(Path) ->
         end
     catch
         _:Reason ->
-            vffov_utils:verbose(error,
-                                "Unable to load playlist file! Error ~p",
+            vffov_utils:verbose(error, "Unable to load playlist file! Error ~p",
                                 [Reason])
     end.
 
@@ -215,6 +259,11 @@ parse_1(txt, Bin) ->
         []   -> empty_playlist;
         List -> List
     end.
+
+convert_opts(M) when is_map(M) ->
+    M;
+convert_opts(PL) when is_list(PL) ->
+    maps:from_list(PL).
 
 deps() ->
     [lager, jiffy, simple_cache].

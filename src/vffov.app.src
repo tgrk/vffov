@@ -28,7 +28,7 @@
 
                {download_dir,       "/home/wiso/Videos/"},
                {downloader_path,    "/usr/bin/youtube-dl"},
-               {downloader_params,  "--quiet"},
+               {downloader_params,  "--quiet --restrict-filenames"},
 
                {post_download_cmd, "sudo mv /home/wiso/Videos/*.mp4 /media/sf_Linux_Share/"}
               ]}

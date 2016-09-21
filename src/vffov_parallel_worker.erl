@@ -21,14 +21,14 @@
          terminate/2, code_change/3]).
 
 -record(state, {id          :: string(),
-                current_url :: url(),
+                current_url :: string(),
                 start_ts    :: pos_integer()
                }).
 
 %%%============================================================================
 %%% API
 %%%============================================================================
--spec start_link(atom(), url()) -> {ok, pid()} | ignore | {error, any()}.
+-spec start_link(atom(), string()) -> {ok, pid()} | ignore | {error, any()}.
 start_link(Name, Url) ->
     gen_server:start_link({local, Name}, ?MODULE, [Url], []).
 
@@ -36,7 +36,7 @@ start_link(Name, Url) ->
 stop() ->
     gen_server:cast(?MODULE, stop).
 
--spec get_url() -> url().
+-spec get_url() -> string().
 get_url() ->
     gen_server:call(?MODULE, current_url).
 

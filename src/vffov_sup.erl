@@ -23,7 +23,7 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
--spec start_worker(workers(), url()) -> pid() | no_return().
+-spec start_worker(workers(), string()) -> pid() | no_return().
 start_worker(vffov_parallel_worker = Worker, Url) ->
     case supervisor:start_child(?MODULE, get_child(Worker, Url)) of
         {error, Reason} ->
@@ -69,10 +69,14 @@ get_child(vffov_queued_worker = Worker, Arg) ->
     {Worker, {Worker, start_link, [Arg]}, temporary, brutal_kill,
      worker, [Worker]};
 get_child(Worker, Arg) ->
-    Suffix = integer_to_list(erlang:monotonic_time()),
-    Name = list_to_atom(atom_to_list(Worker) ++ "_" ++ Suffix),
+    Name = get_unique_worker_name(Worker),
     {Name, {Worker, start_link, [Name, Arg]}, temporary, brutal_kill,
      worker, [Worker]}.
+
+get_unique_worker_name(Worker) ->
+    Name   = atom_to_list(Worker),
+    Suffix = integer_to_list(erlang:phash2(erlang:timestamp())),
+    list_to_atom(Name ++ "_" ++ Suffix).
 
 update_stats(downloads) ->
     Count = length([PL || {_, PL, _} <- simple_cache:ops_list(),

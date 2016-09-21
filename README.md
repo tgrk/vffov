@@ -60,6 +60,20 @@ You could also use default playlist that is stored in ```priv/playlist.txt.sampl
 5> vffov:download().
 ```
 
+There are multiple options for controlling what to download from text file playlist:
+```erlang
+6> vffov:download(#{offset => 0, count  => -1})
+```
+Available options:
+
+| Option    Type    | Description                                         |
+| :------ | :------ | :-------------------------------------------------- |
+| type    | atom    | file or list or <plugin_name>                       |
+| args    | any     | type dependant argument eg list of urls or filepath |
+| offset  | integer | Specify start possition for offset from a list      |
+| count   | integer | REST API endpoint port (default 8081)               |
+
+
 List current active jobs/workers:
 ```erlang
 6> vffov:status().

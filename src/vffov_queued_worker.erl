@@ -26,7 +26,7 @@
 -record(state, {port        :: port(),
                 queue       :: queue:queue(),
                 id          :: string(),
-                current_url :: url(),
+                current_url :: string(),
                 start_ts    :: pos_integer()
                }).
 
@@ -41,11 +41,11 @@ start_link(Queue) ->
 stop() ->
     gen_server:cast(?MODULE, stop).
 
--spec enqueue(url()) -> ok.
+-spec enqueue(string()) -> ok.
 enqueue(Url) ->
     gen_server:cast(?MODULE, {enqueue, Url}).
 
--spec get_url() -> url().
+-spec get_url() -> string().
 get_url() ->
     gen_server:call(?MODULE, current_url).
 
