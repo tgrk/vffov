@@ -68,21 +68,21 @@ sanitize_url({Id, Url}) ->
     {Id, sanitize_url(Url)};
 sanitize_url(Url) ->
     case string:tokens(Url, "?") of
-        [_] -> Url;
+        [_] ->
+            Url;
         [Base, Part2] ->
             case string:str(Base, "youtube.com") > 0 of
                 true ->
                     %% for YT videos remove all except video id parameter
-                    [{_K,V}] = lists:filtermap(
-                                 fun(P) ->
-                                         [K,V] = string:tokens(P, "="),
-                                         case K =:= "v" of
-                                             true  -> {true, {K,V}};
-                                             false -> false
-                                         end
-                                 end,
-                                 string:tokens(Part2, "&")
-                                ),
+                    [{_K, V}] = lists:filtermap(
+                                  fun(P) ->
+                                          case string:tokens(P, "=") of
+                                              ["v", _] -> true;
+                                              _        -> false
+                                          end
+                                  end,
+                                  string:tokens(Part2, "&")
+                                 ),
                     Base ++ "?v=" ++ V;
                 false ->
                     Url
@@ -92,11 +92,8 @@ sanitize_url(Url) ->
 -spec move_to_download_dir(string(), pos_integer()) -> {ok, string()}.
 move_to_download_dir(Url, Start) ->
     %% find file by id in path (note that this is YT specific)
-    [_ | Id] = string:tokens(Url, "="),
-    [File] = lists:filter(
-              fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
-              filelib:wildcard("*")
-             ),
+    [_ | Id]  = string:tokens(Url, "="),
+    File      = filter_filename_by_id(Id),
     TargetDir = application:get_env(vffov, download_dir, ""),
 
     {ok, FileInfo} = file:read_file_info(File),
@@ -190,3 +187,12 @@ build_downloader_command(Url) ->
          "-t ",
          Url])
      ).
+
+filter_filename_by_id(Id) ->
+    PredFun = fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
+    case  lists:filter(PredFun, filelib:wildcard("*")) of
+        [] ->
+            [];
+        [File] ->
+            File
+    end.
