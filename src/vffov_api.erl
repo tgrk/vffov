@@ -63,7 +63,7 @@ get(_Path, _Req) ->
     return_error(not_found).
 
 %%TODO: plugins api? handle plugin specific json to start downlod
-post([<<"download">>, <<"plugins">>, PluginName], Req) ->
+post([<<"download">>, <<"plugins">>, _PluginName], _Req) ->
     return_json(<<"not_implemented">>);
 post([<<"download">>], Req) ->
     try

@@ -20,9 +20,7 @@
          open_downloader_port/1,
          close_downloader_port/1,
          read_pocket_credentials/0,
-         write_pocket_credentials/3,
-         process_sizes/0,
-         total_memory/1
+         write_pocket_credentials/3
         ]).
 
 %%=============================================================================
@@ -70,21 +68,21 @@ sanitize_url({Id, Url}) ->
     {Id, sanitize_url(Url)};
 sanitize_url(Url) ->
     case string:tokens(Url, "?") of
-        [_] -> Url;
+        [_] ->
+            Url;
         [Base, Part2] ->
             case string:str(Base, "youtube.com") > 0 of
                 true ->
                     %% for YT videos remove all except video id parameter
-                    [{_K,V}] = lists:filtermap(
-                                 fun(P) ->
-                                         [K,V] = string:tokens(P, "="),
-                                         case K =:= "v" of
-                                             true  -> {true, {K,V}};
-                                             false -> false
-                                         end
-                                 end,
-                                 string:tokens(Part2, "&")
-                                ),
+                    [{_K, V}] = lists:filtermap(
+                                  fun(P) ->
+                                          case string:tokens(P, "=") of
+                                              ["v", _] -> true;
+                                              _        -> false
+                                          end
+                                  end,
+                                  string:tokens(Part2, "&")
+                                 ),
                     Base ++ "?v=" ++ V;
                 false ->
                     Url
@@ -94,11 +92,8 @@ sanitize_url(Url) ->
 -spec move_to_download_dir(string(), pos_integer()) -> {ok, string()} | no_return().
 move_to_download_dir(Url, Start) ->
     %% find file by id in path (note that this is YT specific)
-    [_ | Id] = string:tokens(Url, "="),
-    [File] = lists:filter(
-              fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
-              filelib:wildcard("*")
-             ),
+    [_ | Id]  = string:tokens(Url, "="),
+    File      = filter_filename_by_id(Id),
     TargetDir = application:get_env(vffov, download_dir, ""),
 
     {ok, FileInfo} = file:read_file_info(File),
@@ -119,8 +114,9 @@ move_to_download_dir(Url, Start) ->
 
     {ok, TargetPath}.
 
+%%TODO: we are ignoring path argument here!
 -spec maybe_execute_command(atom(), string()) -> ok.
-maybe_execute_command(post, Path) ->
+maybe_execute_command(post, _Path) ->
     try
         case application:get_env(vffov, post_download_cmd, undefined) of
             undefined -> ok;
@@ -136,7 +132,6 @@ maybe_execute_command(post, Path) ->
 
 -spec open_downloader_port(string()) -> port().
 open_downloader_port(Url) ->
-
     %% add file stats
     simple_cache:set(erlang:phash2(Url),
                      [{file,   ""},
@@ -161,7 +156,7 @@ get_downloader() ->
     application:get_env(vffov, downloader_path, "/usr/bin/youtube-dl").
 
 -spec write_pocket_credentials(string(), string(), string())
-                              -> ok | {error,any()}.
+                              -> ok | {error, term()}.
 write_pocket_credentials(Code, ConsumerKey, AccessToken) ->
     Data = [{code,         Code},
             {consumer_key, ConsumerKey},
@@ -169,45 +164,15 @@ write_pocket_credentials(Code, ConsumerKey, AccessToken) ->
     file:write_file("priv/getpocket.term", io_lib:format("~p.", [Data]),
                     [write]).
 
--spec read_pocket_credentials() -> list({atom(), any()}) | no_return().
+-spec read_pocket_credentials() -> [proplists:property()] | no_return().
 read_pocket_credentials() ->
     case file:consult("priv/getpocket.term") of
-        {ok, Keys} ->
+        {ok, [Keys]} ->
             Keys;
         Other ->
             verbose(error, "Unable to read getpocket "
-                                "credentials - ~p!", [Other]),
+                    "credentials - ~p!", [Other]),
             throw("Unable to read stored credentials!")
-    end.
-
--spec process_sizes() -> list({memory, integer()}).
-process_sizes() ->
-    Pids = lists:filtermap(
-             fun ({Id, Pid, _, _}) when Id =:= vffov_queued_worker ->
-                     {true, Pid};
-                 ({_, Pid, _, Modules}) ->
-                     case lists:member(vffov_parallel_worker, Modules) of
-                         true -> {true, Pid};
-                         false -> false
-                     end;
-                 (_) ->
-                     false
-             end,
-             supervisor:which_children(vffov_sup)),
-    lists:filtermap(fun (P) ->
-                            case total_memory(P) of
-                                undefined -> false;
-                                Bytes     -> {true, {memory, Bytes}}
-                            end
-                    end, Pids).
-
--spec total_memory(pid()) -> integer() | undefined.
-total_memory(Pid) ->
-    case {process_info(Pid, memory), process_info(Pid, binary)} of
-        {A, B} when A =:= undefined orelse B =:= undefined ->
-            undefined;
-        {{memory, Memory}, {binary, B}} ->
-            Memory + lists:sum([Size || {_, Size, _} <- B])
     end.
 
 %%=============================================================================
@@ -222,3 +187,12 @@ build_downloader_command(Url) ->
          "-t ",
          Url])
      ).
+
+filter_filename_by_id(Id) ->
+    PredFun = fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
+    case  lists:filter(PredFun, filelib:wildcard("*")) of
+        [] ->
+            [];
+        [File] ->
+            File
+    end.

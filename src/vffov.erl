@@ -260,4 +260,4 @@ convert_opts(PL) when is_list(PL) ->
     maps:from_list(PL).
 
 deps() ->
-    [lager, jiffy, statman, simple_cache].
+    [lager, jiffy, simple_cache].

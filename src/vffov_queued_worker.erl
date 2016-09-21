@@ -24,7 +24,7 @@
          terminate/2, code_change/3]).
 
 -record(state, {port        :: port(),
-                queue       :: queue:queue({string(), string()}),
+                queue       :: queue:queue(),
                 id          :: string(),
                 current_url :: string(),
                 start_ts    :: pos_integer()
@@ -105,8 +105,11 @@ handle_info({_Port, {exit_status,1}}, #state{current_url = Url} = State) ->
     do_download(State);
 handle_info({_Port, {exit_status, 0}}, State) ->
     finish_download(State);
-handle_info({'EXIT', _Port, normal}, #state{queue = []} = State) ->
-    {stop, normal, State};
+handle_info({'EXIT', _Port, normal}, #state{queue = Queue} = State) ->
+    case queue:is_empty(Queue) of
+        true  -> {stop, normal, State};
+        false -> do_download(State)
+    end;
 handle_info({'EXIT', _Port, normal}, State) ->
     do_download(State);
 handle_info(Info, State) ->
@@ -157,5 +160,5 @@ do_download(#state{queue = Queue} = State) ->
             State#state{port = Port, queue = Queue2, current_url = Url}
            };
        _ ->
-           {stop, normal, State#state{queue = [], current_url = []}}
+           {stop, normal, State#state{queue = queue:new(), current_url = []}}
    end.

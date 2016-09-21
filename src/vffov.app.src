@@ -1,4 +1,3 @@
-
 {application, vffov,
  [
   {description, "Video Fetcher For Offline View"},
@@ -13,7 +12,9 @@
             compiler,
             syntax_tools,
             lager,
-            jiffy
+            elli,
+            jiffy,
+            simple_cache
         ]},
         {mod, {vffov_app, []}},
         {env, [
