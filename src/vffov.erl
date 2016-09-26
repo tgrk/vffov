@@ -218,7 +218,7 @@ handle_download(Opts) ->
                          maps:get(args, Opts, []);
                      _ ->
                          %% offset
-                         lists:sublist(maps:get(args, Opts), Offset, Count)
+                         lists:sublist(maps:get(args, Opts), Offset + 1, Count)
                  end,
 
     Sanitized = vffov_utils:sanitize_urls(ListOfUrls),
