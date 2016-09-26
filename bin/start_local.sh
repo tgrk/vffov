@@ -1,3 +1,3 @@
 #!/bin/bash
 
-erl -pa ebin/ deps/*/ebin test/ -boot start_sasl -s vffov
+rebar3 shell --apps vffov 
