@@ -1,7 +1,7 @@
 {application, vffov,
  [
   {description, "Video Fetcher For Offline View"},
-  {vsn, "0.1beta"},
+  {vsn, "0.3beta"},
   {registered, []},
   {modules, [vffov_app,
              vffov_sup
@@ -9,6 +9,7 @@
   {applications, [
             kernel,
             stdlib,
+            sasl,
             compiler,
             syntax_tools,
             lager,
@@ -26,10 +27,10 @@
                {enable_getpocket,   true},
                {enable_youtube,     false},
 
-               {download_dir,       "/home/wiso/Videos/"},
+               {download_dir,       "/home/tgrk/Videos/"},
                {downloader_path,    "/usr/bin/youtube-dl"},
-               {downloader_params,  "--quiet --restrict-filenames"},
+               {downloader_params,  "--restrict-filenames"},
 
-               {post_download_cmd, "sudo mv /home/wiso/Videos/*.mp4 /media/sf_Linux_Share/"}
+               {post_download_cmd, ""}
               ]}
  ]}.
