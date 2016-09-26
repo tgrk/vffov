@@ -74,15 +74,15 @@ sanitize_url(Url) ->
             case string:str(Base, "youtube.com") > 0 of
                 true ->
                     %% for YT videos remove all except video id parameter
-                    [{_K, V}] = lists:filtermap(
-                                  fun(P) ->
-                                          case string:tokens(P, "=") of
-                                              ["v", _] -> true;
-                                              _        -> false
-                                          end
-                                  end,
-                                  string:tokens(Part2, "&")
-                                 ),
+                    [V] = lists:filtermap(
+                            fun(P) ->
+                                    case string:tokens(P, "=") of
+                                        ["v", Val] -> {true, Val};
+                                        _           -> false
+                                    end
+                            end,
+                            string:tokens(Part2, "&")
+                           ),
                     Base ++ "?v=" ++ V;
                 false ->
                     Url
@@ -108,9 +108,13 @@ move_to_download_dir(Url, Start) ->
                       {finish, element(5, FileInfo)}
                      ]),
 
-    %% finally move file
+    %% create valid absolute paths
     TargetPath = filename:join(TargetDir, File),
-    ok = file:rename(File, TargetPath),
+    {ok, SourceDir} = file:get_cwd(),
+    SourcePath = filename:join(SourceDir, File),
+
+    %% finally move file
+    ok = file:rename(SourcePath, TargetPath),
 
     {ok, TargetPath}.
 
