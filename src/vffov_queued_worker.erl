@@ -139,9 +139,8 @@ finish_download(#state{id = Id, current_url = Url} = State) ->
             vffov_utils:verbose(info, "Error: ~p:~p",
                                 [Error, erlang:get_stacktrace()])
     end,
-    %%FIXME: handle plugins generically
-    %% mark as downloaded resource (getpocket)
-    vffov_getpocket:mark_done(Id),
+
+    ok = vffov_utils:download_finished(Url, Id),
 
     do_download(State).
 

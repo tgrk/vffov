@@ -16,6 +16,7 @@
          sanitize_url/1,
          move_to_download_dir/2,
          maybe_execute_command/2,
+         download_finished/2,
          get_downloader/0,
          open_downloader_port/1,
          close_downloader_port/1,
@@ -118,6 +119,16 @@ move_to_download_dir(Url, Start) ->
 
     {ok, TargetPath}.
 
+-spec download_finished(string(), any()) -> ok | no_return().
+download_finished(Url, Id) ->
+    %%FIXME: handle plugins generically
+    %% mark as downloaded (getpocket)
+    case Id =/= undefined of
+        true  -> vffov_getpocket:mark_done(Id);
+        false -> maybe_remove_from_playlist_file(Url)
+    end,
+    ok.
+
 %%TODO: we are ignoring path argument here!
 -spec maybe_execute_command(atom(), string()) -> ok.
 maybe_execute_command(post, _Path) ->
@@ -200,3 +211,36 @@ filter_filename_by_id(Id) ->
         [File] ->
             File
     end.
+
+maybe_remove_from_playlist_file(Url) ->
+    Path = vffov_utils:priv_dir(vffov) ++ "playlist.txt",
+    case filelib:is_regular(Path) of
+        true ->
+            Lines    = readlines(Path),
+            Modified = lists:dropwhile(fun (Line) -> string:str(Line, Url) > 0 end, Lines),
+            ExistingLen = length(Lines),
+            case ExistingLen > 0 andalso ExistingLen =/= length(Modified) of
+                true  ->
+                    ok = file:delete(Path),
+                    writelines(Path, Modified);
+                false ->
+                    ok
+            end;
+        false ->
+            ok
+    end.
+
+readlines(FileName) ->
+    {ok, Device} = file:open(FileName, [read]),
+    get_all_lines(Device, []).
+
+get_all_lines(Device, Acc) ->
+    case io:get_line(Device, "") of
+        eof  -> file:close(Device), Acc;
+        Line -> get_all_lines(Device, Acc ++ [Line])
+    end.
+
+writelines(FileName, []) ->
+    file:write_file(FileName, <<>>, [write]);
+writelines(FileName, Lines) ->
+    file:write_file(FileName, string:join(Lines, "\n"), [write]).
