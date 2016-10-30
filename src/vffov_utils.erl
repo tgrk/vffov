@@ -8,21 +8,29 @@
 -module(vffov_utils).
 
 %% API
--export([
-         verbose/3,
-         priv_dir/1,
-         is_url/1,
-         sanitize_urls/1,
-         sanitize_url/1,
-         move_to_download_dir/2,
-         maybe_execute_command/2,
-         download_finished/2,
-         get_downloader/0,
-         open_downloader_port/1,
-         close_downloader_port/1,
-         read_pocket_credentials/0,
-         write_pocket_credentials/3
+-export([ verbose/3
+        , priv_dir/1
+        , is_url/1
+        , sanitize_urls/1
+        , sanitize_url/1
+        , move_to_download_dir/2
+        , maybe_execute_command/2
+        , download_finished/2
+        , get_downloader/0
+        , open_downloader_port/1
+        , close_downloader_port/1
+        , read_pocket_credentials/0
+        , write_pocket_credentials/3
         ]).
+
+%% Exported for testing only
+-ifdef(TEST).
+-export([ filter_filename_by_id/1
+        , maybe_remove_from_playlist_file/1
+        , readlines/1
+        ]).
+-endif.
+
 
 %%=============================================================================
 %% API
@@ -204,12 +212,10 @@ build_downloader_command(Url) ->
      ).
 
 filter_filename_by_id(Id) ->
-    PredFun = fun(F) -> string:str(F, lists:concat(Id)) > 0 end,
-    case  lists:filter(PredFun, filelib:wildcard("*")) of
-        [] ->
-            [];
-        [File] ->
-            File
+    PredFun = fun(F) -> string:str(F, Id) > 0 end,
+    case lists:filter(PredFun, filelib:wildcard("*")) of
+        []         -> [];
+        [File | _] -> File
     end.
 
 maybe_remove_from_playlist_file(Url) ->
@@ -217,7 +223,8 @@ maybe_remove_from_playlist_file(Url) ->
     case filelib:is_regular(Path) of
         true ->
             Lines    = readlines(Path),
-            Modified = lists:dropwhile(fun (Line) -> string:str(Line, Url) > 0 end, Lines),
+            Modified = lists:filter(
+                         fun (Line) -> string:str(Line, Url) =:= 0 end, Lines),
             ExistingLen = length(Lines),
             case ExistingLen > 0 andalso ExistingLen =/= length(Modified) of
                 true  ->
