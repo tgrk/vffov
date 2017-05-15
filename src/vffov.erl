@@ -56,7 +56,8 @@ download(Opts) when is_map(Opts) ->
 
 -spec download(mode(), opts()) -> ok | error.
 download(local, Opts) ->
-    case filelib:is_regular(vffov_utils:get_downloader()) of
+   {ok, Path} = vffov_utils:get_downloader(),
+    case filelib:is_regular(Path) of
         true  ->
             Opts1 = convert_opts(Opts),
             case maps:get(type, Opts1) of
@@ -80,10 +81,10 @@ download(getpocket, PluginArgs) ->
         ok ->
             case vffov_getpocket:list(PluginArgs) of
                 empty ->
-                    vffov_utils:verbose(info, "No matching items.~n", []);
+                    vffov_utils:verbose(info, "No maotching items.~n", []);
                 {error, Reason} ->
                     vffov_utils:verbose(error,
-                                        "Unable to get items from getpocket "
+                                        "Unable to get items from getpooket "
                                         "service! Error ~p", [Reason]);
                 List  ->
                     Opts = #{type   => list,
@@ -163,16 +164,13 @@ plugins() ->
 
 -spec start() -> ok.
 start() ->
-    [application:ensure_all_started(A) || A <- deps()],
-
-    application:load(vffov),
-    load_plugins(),
-    application:start(vffov),
+    {ok, _} = application:ensure_all_started(vffov),
+    ok = load_plugins(),
     ok.
 
 -spec stop() -> ok.
 stop() ->
-    [application:stop(A) || A <- deps() ++ [vffov]],
+    ok = application:stop(vffov),
     ok.
 
 %%%=============================================================================
@@ -210,21 +208,16 @@ process_url_list(Opts) ->
     handle_download(Opts1).
 
 handle_download(Opts) ->
-    Offset     = maps:get(offset, Opts, 0),
-    Count      = maps:get(count, Opts, 1),
-    ListOfUrls = case {Offset, Count} of
-                     {-1, -1} ->
-                         %% all
-                         maps:get(args, Opts, []);
-                     _ ->
-                         %% offset
-                         lists:sublist(maps:get(args, Opts), Offset + 1, Count)
-                 end,
-
-    Sanitized = vffov_utils:sanitize_urls(ListOfUrls),
-    case application:get_env(vffov, download_parallel, false) of
-        true  -> lists:foreach(fun download_file/1, Sanitized);
-        false -> queue_downloads(Sanitized)
+    case maybe_slice_downloads(Opts) of
+        [] ->
+            empty;
+        ListOfUrls ->
+            Sanitized = vffov_utils:sanitize_urls(ListOfUrls),
+            vffov_utils:verbose(info, "handle_download: urls=~p", [Sanitized]),
+            case application:get_env(vffov, download_parallel, false) of
+                true  -> lists:foreach(fun download_file/1, Sanitized);
+                false -> queue_downloads(Sanitized)
+            end
     end.
 
 download_file({[{<<"url">>, Url}]}) ->
@@ -265,5 +258,17 @@ convert_opts(M) when is_map(M) ->
 convert_opts(PL) when is_list(PL) ->
     maps:from_list(PL).
 
-deps() ->
-    [lager, jiffy, simple_cache].
+maybe_slice_downloads(Opts) ->
+    case {maps:get(offset, Opts, -1), maps:get(count, Opts, -1)} of
+        {-1, -1} ->
+            %% take all
+            maps:get(args, Opts, []);
+        {Offset, Count} ->
+            %% take offset
+            case maps:get(args, Opts) of
+                empty_playlist ->
+                    [];
+                List ->
+                    lists:sublist(List, Offset + 1, Count)
+            end
+    end.

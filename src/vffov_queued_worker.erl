@@ -23,10 +23,10 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {port        :: port(),
+-record(state, {port        :: undefined | port(),
                 queue       :: queue:queue(),
-                id          :: string(),
-                current_url :: string(),
+                id          :: undefined | string(),
+                current_url :: undefined | string(),
                 start_ts    :: pos_integer()
                }).
 
@@ -127,7 +127,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%============================================================================
 finish_download(#state{id = undefined, current_url = Url} = State) ->
     vffov_utils:verbose(info, "Finished downloading ~s", [Url]),
-    vffov_utils:move_to_download_dir(Url, State#state.start_ts),
+    {ok, Path} = vffov_utils:move_to_download_dir(Url, State#state.start_ts),
+    ok = vffov_utils:download_finished(Url, undefined),
+    ok = vffov_utils:maybe_execute_command(post, Path),
     do_download(State);
 finish_download(#state{id = Id, current_url = Url} = State) ->
     try

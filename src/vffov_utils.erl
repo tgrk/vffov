@@ -21,16 +21,12 @@
         , close_downloader_port/1
         , read_pocket_credentials/0
         , write_pocket_credentials/3
-        ]).
 
-%% Exported for testing only
--ifdef(TEST).
--export([ filter_filename_by_id/1
+          %% Exported for testing only
+        , filter_filename_by_id/1
         , maybe_remove_from_playlist_file/1
         , readlines/1
         ]).
--endif.
-
 
 %%=============================================================================
 %% API
@@ -161,22 +157,25 @@ open_downloader_port(Url) ->
                       {url,    Url},
                       {status, downloading},
                       {size,   0},
-                      {start,  0},
+                      {start,  edatetime:now2ts()},
                       {finish, 0}
                      ]),
 
-    erlang:open_port(
-      {spawn, build_downloader_command(Url)},
-      [exit_status]
-     ).
+    Path = build_downloader_command(Url),
+    verbose(info, "Downloader path=~p", [Path]),
+    erlang:open_port({spawn, Path}, [exit_status]).
 
 -spec close_downloader_port(atom() | port()) -> true.
 close_downloader_port(Port) ->
     erlang:port_close(Port).
 
--spec get_downloader() -> string().
+-spec get_downloader() -> {ok, string()} | error.
 get_downloader() ->
-    application:get_env(vffov, downloader_path, "/usr/bin/youtube-dl").
+    Path = application:get_env(vffov, downloader_path, "/usr/bin/youtube-dl"),
+    case filelib:is_regular(Path) of
+        true  -> {ok, Path};
+        false -> error
+    end.
 
 -spec write_pocket_credentials(string(), string(), string())
                               -> ok | {error, term()}.
@@ -202,15 +201,22 @@ read_pocket_credentials() ->
 %% Internal functionality
 %%=============================================================================
 build_downloader_command(Url) ->
-    lists:flatten(
-      io_lib:format(
-        "~s ~s ~s ~s",
-        [get_downloader(),
-         application:get_env(vffov, downloader_params, ""),
-         "-t ",
-         Url])
-     ).
+    case get_downloader() of
+        {ok, Path} ->
+            lists:flatten(
+              io_lib:format(
+                "~s ~s ~s ~s",
+                [Path, application:get_env(vffov, downloader_params, ""),
+                 "-t ",
+                 Url])
+             );
+        error ->
+            verbose(error, "Unable to find downloader. Check configuration!", []),
+            throw("Unable to find downloader!")
+   end.
 
+filter_filename_by_id([Id]) ->
+    filter_filename_by_id(Id);
 filter_filename_by_id(Id) ->
     PredFun = fun(F) -> string:str(F, Id) > 0 end,
     case lists:filter(PredFun, filelib:wildcard("*")) of
@@ -224,9 +230,10 @@ maybe_remove_from_playlist_file(Url) ->
         true ->
             Lines    = readlines(Path),
             Modified = lists:filter(
-                         fun (Line) -> string:str(Line, Url) =:= 0 end, Lines),
+                         fun (Line) ->
+                                 string:str(Line, Url) =:= 0 end, Lines),
             ExistingLen = length(Lines),
-            case ExistingLen > 0 andalso ExistingLen =/= length(Modified) of
+            case ExistingLen =/= length(Modified) of
                 true  ->
                     ok = file:delete(Path),
                     writelines(Path, Modified);
@@ -250,4 +257,4 @@ get_all_lines(Device, Acc) ->
 writelines(FileName, []) ->
     file:write_file(FileName, <<>>, [write]);
 writelines(FileName, Lines) ->
-    file:write_file(FileName, string:join(Lines, "\n"), [write]).
+    file:write_file(FileName, lists:concat(Lines), [write]).

@@ -32,20 +32,20 @@ stop(_State) ->
 
 -spec print_welcome() -> ok.
 print_welcome() ->
-    Print = fun (Line, Args) -> vffov_utils:verbose(info, Line, Args) end,
-    Print("+-------------------------------------------------+", []),
-    Print("| Welcome to VFFOV                                |", []),
-    Print("+-------------------------------------------------+", []),
-    Print("| * REST API - http://127.0.0.1:8081/             |", []),
-    Print("| * Statman  - http://127.0.0.1:8081/statman      |", []),
-    Print("+-------------------------------------------------+", []),
-    Print("| Commands:                                       |", []),
-    Print("+-------------------------------------------------+", []),
+    Print = fun (Line, Args) -> io:format(Line, Args) end,
+    Print("+-------------------------------------------------+~n", []),
+    Print("| Welcome to VFFOV                                |~n", []),
+    Print("+-------------------------------------------------+~n", []),
+    Print("| * REST API - http://127.0.0.1:8081/             |~n", []),
+    Print("| * Statman  - http://127.0.0.1:8081/statman      |~n", []),
+    Print("+-------------------------------------------------+~n", []),
+    Print("| Commands:                                       |~n", []),
+    Print("+-------------------------------------------------+~n", []),
     HelpFun = fun ({module_info, _Arity}) ->
                       ignore;
                   ({Name, Arity}) ->
-                      Print("  * ~s/~s" , [Name, integer_to_list(Arity)])
+                      Print("  * ~s/~s~n" , [Name, integer_to_list(Arity)])
               end,
     lists:foreach(HelpFun, vffov:module_info(exports)),
-    Print("+-------------------------------------------------+", []),
+    Print("+-------------------------------------------------+~n", []),
     ok.

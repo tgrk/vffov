@@ -20,7 +20,7 @@
         {mod, {vffov_app, []}},
         {env, [
                {download_parallel,  false},
-               {enable_logging,     false},
+               {enable_logging,     true},
                {enable_api,         true},
                {api_port,           8082},
 
@@ -28,7 +28,7 @@
                {enable_youtube,     false},
 
                {download_dir,       "/home/tgrk/Videos/"},
-               {downloader_path,    "/usr/bin/youtube-dl"},
+               {downloader_path,    "/usr/local/bin/youtube-dl"},
                {downloader_params,  "--restrict-filenames"},
 
                {post_download_cmd, ""}

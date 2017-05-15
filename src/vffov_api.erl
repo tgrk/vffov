@@ -91,12 +91,10 @@ post(_Path, _Req) ->
     return_error(not_found).
 
 options(_Path, _Req) ->
-    {200,
-     [{"Access-Control-Allow-Origin", "*"},
-      {"Access-Control-Allow-Methods", "GET, POST, OPTIONS"},
-      {"Access-Control-Allow-Headers", "Authorization, Content-Type"},
-      {"Access-Control-Allow-Credentials", "X-PINGOTHER"}],
-     <<"">>}.
+    {200, [{"Access-Control-Allow-Origin",      "*"},
+           {"Access-Control-Allow-Methods",     "GET, POST, OPTIONS"},
+           {"Access-Control-Allow-Headers",     "Authorization, Content-Type"},
+           {"Access-Control-Allow-Credentials", "X-PINGOTHER"}], <<"">>}.
 
 %%%============================================================================
 %%% Internal functions
@@ -110,9 +108,6 @@ return_error(bad_request) ->
     return(400, <<"Bad request">>).
 
 return(Code, Body) ->
-    {Code,
-     [{<<"Content-Type">>, <<"application/json">>},
-      {<<"Access-Control-Allow-Origin">>, <<"*">>}
-     ],
-     Body
-    }.
+    {Code, [{<<"Content-Type">>, <<"application/json">>},
+            {<<"Access-Control-Allow-Origin">>, <<"*">>}
+           ], Body}.
