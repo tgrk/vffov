@@ -13,6 +13,7 @@
          download/1,
          download/2,
 
+         show_playlist/0,
          status/0,
          queue/0,
          clean_queue/0,
@@ -26,17 +27,18 @@
          stop/0
         ]).
 
+-define(OPTS_SCHEMA, #{type   => fun io_lib:printable_unicode_list/1,
+                       args   => fun(_) -> true end,
+                       offset => fun is_integer/1,
+                       count  => fun is_integer/1
+                      }).
+
 %%%=============================================================================
 %%% API
 %%%=============================================================================
 -spec download() -> ok | error.
 download() ->
-    Opts = #{type   => file,
-             args   => vffov_utils:priv_dir(vffov) ++ "playlist.txt",
-             offset => -1,
-             count  => -1
-            },
-    download(local, Opts).
+    download(local, build_default_opts()).
 
 -spec download(opts()) -> ok | error.
 download(L) when is_list(L) ->
@@ -47,11 +49,7 @@ download(L) when is_list(L) ->
             },
     download(local, Opts);
 download(Opts) when is_map(Opts) ->
-    DefaultOpts = #{type   => file,
-                    args   => vffov_utils:priv_dir(vffov) ++ "playlist.txt",
-                    offset => -1,
-                    count  => -1
-                   },
+    DefaultOpts = build_default_opts(),
     download(local, maps:merge(DefaultOpts, Opts)).
 
 -spec download(mode(), opts()) -> ok | error.
@@ -60,6 +58,7 @@ download(local, Opts) ->
     case filelib:is_regular(Path) of
         true  ->
             Opts1 = convert_opts(Opts),
+            validate_opts(Opts1),
             case maps:get(type, Opts1) of
                 file ->
                     case filelib:is_regular(maps:get(args, Opts1)) of
@@ -120,6 +119,10 @@ status() ->
           (_) ->
               false
       end, supervisor:which_children(vffov_sup)).
+
+-spec show_playlist() -> any().
+show_playlist() ->
+    parse(get_playlist_file()).
 
 -spec queue() -> queue:queue().
 queue() ->
@@ -258,6 +261,35 @@ convert_opts(M) when is_map(M) ->
 convert_opts(PL) when is_list(PL) ->
     maps:from_list(PL).
 
+validate_opts(Opts) when is_map(Opts) ->
+    PLOpts = maps:to_list(Opts),
+    case validate_opts_keys(PLOpts, maps:keys(?OPTS_SCHEMA)) of
+        false -> false;
+        true  -> validate_opts(PLOpts)
+    end;
+validate_opts([]) ->
+    true;
+validate_opts([{Key, Value} | T]) ->
+    ValidationFun = maps:get(Key, ?OPTS_SCHEMA),
+    case ValidationFun(Value) of
+        true ->
+            validate_opts(T);
+        false ->
+            vffov_utils:verbose(error, "Invalid option ~p value  ~s passed!", [Key, Value]),
+            false
+    end.
+
+validate_opts_keys([], _AllowedKeys) ->
+    true;
+validate_opts_keys([{Key, _V} | T], AllowedKeys) ->
+    case lists:member(Key, AllowedKeys) of
+        false ->
+            vffov_utils:verbose(error, "Invalid option key ~s passed!", [Key]),
+            false;
+        true ->
+            validate_opts_keys(T, AllowedKeys)
+    end.
+
 maybe_slice_downloads(Opts) ->
     case {maps:get(offset, Opts, -1), maps:get(count, Opts, -1)} of
         {-1, -1} ->
@@ -272,3 +304,13 @@ maybe_slice_downloads(Opts) ->
                     lists:sublist(List, Offset + 1, Count)
             end
     end.
+
+build_default_opts() ->
+    #{type   => file,
+      args   => get_playlist_file(),
+      offset => -1,
+      count  => -1
+     }.
+
+get_playlist_file() ->
+    vffov_utils:priv_dir(vffov) ++ "playlist.txt".
