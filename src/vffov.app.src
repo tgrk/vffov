@@ -27,8 +27,8 @@
                {enable_getpocket,   true},
                {enable_youtube,     false},
 
-               {download_dir,       "/home/tgrk/Videos/"},
-               {downloader_path,    "/usr/local/bin/youtube-dl"},
+               {download_dir,       "/home/tgrk/Videos/now/"},
+               {downloader_path,    "/usr/bin/youtube-dl"},
                {downloader_params,  "--restrict-filenames"},
 
                {post_download_cmd, ""}

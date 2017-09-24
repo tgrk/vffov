@@ -207,7 +207,7 @@ build_downloader_command(Url) ->
               io_lib:format(
                 "~s ~s ~s ~s",
                 [Path, application:get_env(vffov, downloader_params, ""),
-                 "-t ",
+                 "-o \"%(title)s-%(id)s.%(ext)s\"",
                  Url])
              );
         error ->
